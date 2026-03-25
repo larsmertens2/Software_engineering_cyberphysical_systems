@@ -24,7 +24,6 @@ Robot {
   children [
     HingeJoint {
       jointParameters HingeJointParameters {
-        axis 0 1 0
         anchor -0.5 0.4 -0.15
       }
       device [
@@ -34,7 +33,7 @@ Robot {
       ]
       endPoint Solid {
         translation -0.4999999999999999 0.4000000000000002 -0.15000000000000036
-        rotation 0.5773489358556709 0.5773509358554486 0.5773509358554485 2.0943999999999994
+        rotation 0.5773489358556707 0.5773509358554485 0.5773509358554487 2.0943999999999994
         children [
           DEF WHEEL Shape {
             appearance PBRAppearance {
@@ -53,19 +52,18 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        axis 0 1 0
-        anchor -0.5 0.4 -0.15
+        anchor -0.5 -0.4 -0.15
       }
       device [
         RotationalMotor {
-          name "motor_fl"
+          name "motor_bl"
         }
       ]
       endPoint Solid {
-        translation -0.5000000000000001 -0.39999999999999986 -0.15000000000000024
-        rotation 0.5773489358556709 0.5773509358554486 0.5773509358554485 2.0943999999999994
+        translation -0.5 -0.4 -0.15
+        rotation 0.5773489358556707 0.5773509358554485 0.5773509358554487 2.0943999999999994
         children [
-          Shape {
+          DEF WHEEL Shape {
             appearance PBRAppearance {
             }
             geometry Cylinder {
@@ -82,7 +80,6 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        axis 0 1 0
         anchor 0.5 0.4 -0.15
       }
       device [
@@ -91,8 +88,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.5 0.39999999999999986 -0.15000000000000036
-        rotation 0.5773489358556709 0.5773509358554486 0.5773509358554485 2.0943999999999994
+        translation 0.49999998574856314 0.3978335800111345 -0.15036783503706297
+        rotation 0.577348933179372 0.5773509373270198 0.5773509370601668 2.0944000044147275
         children [
           Shape {
             appearance PBRAppearance {
@@ -111,7 +108,6 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        axis 0 1 0
         anchor 0.5 -0.4 -0.15
       }
       device [
@@ -120,8 +116,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.4999999999999999 -0.4000000000000002 -0.15000000000000024
-        rotation 0.5773489358556709 0.5773509358554486 0.5773509358554485 2.0943999999999994
+        translation 0.5000000111545416 -0.4021859390136936 -0.15022479254207255
+        rotation 0.5773489364235762 0.5773509366893266 0.5773509344536669 2.0944000025016534
         children [
           Shape {
             appearance PBRAppearance {
@@ -150,4 +146,5 @@ Robot {
   boundingObject USE BODY
   physics Physics {
   }
+  controller "robot_controller"
 }
