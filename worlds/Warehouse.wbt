@@ -8,14 +8,29 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.2555286247234191 0.2610190687600785 0.9308996550061557 1.6211309126953568
-  position -2.0987584978764238 -63.29884315611672 30.39715253518714
+  position -1.4504280958089124 -32.78721079920225 12.277292907522963
 }
 RectangleArena {
-  floorSize 20 30
+  floorSize 30 50
   wallThickness 0.3
   wallHeight 6
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
+}
+Robot {
+  translation 0 0 1
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0 1 1
+      }
+      geometry Box {
+        size 1 1.4 0.4
+      }
+    }
+  ]
+  physics Physics {
+  }
 }
