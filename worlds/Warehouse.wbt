@@ -5,10 +5,21 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 
 WorldInfo {
+  contactProperties [
+    ContactProperties {
+      material1 "wheel_material"
+      coulombFriction [
+        1, 0
+      ]
+      forceDependentSlip [
+        0, 0
+      ]
+    }
+  ]
 }
 Viewpoint {
-  orientation 0.027635614596645017 0.9134099787612623 -0.406101567966951 0.1486269953067906
-  position -14.290129240747302 -0.08352093151977036 4.131787552438641
+  orientation -0.1210850297873183 0.40611326621096683 0.9057651078336285 0.6360313281102905
+  position -12.043482974107908 -7.034256669187277 5.641204790534352
 }
 RectangleArena {
   floorSize 30 50
@@ -45,6 +56,7 @@ Robot {
           }
         ]
         name "wheel_fl"
+        contactMaterial "wheel_material"
         boundingObject USE WHEEL
         physics Physics {
         }
@@ -73,6 +85,7 @@ Robot {
           }
         ]
         name "wheel_bl"
+        contactMaterial "wheel_material"
         boundingObject USE WHEEL
         physics Physics {
         }
@@ -101,6 +114,7 @@ Robot {
           }
         ]
         name "wheel_fr"
+        contactMaterial "wheel_material"
         boundingObject USE WHEEL
         physics Physics {
         }
@@ -129,6 +143,7 @@ Robot {
           }
         ]
         name "wheel_br"
+        contactMaterial "wheel_material"
         boundingObject USE WHEEL
         physics Physics {
         }
