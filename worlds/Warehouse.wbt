@@ -7,21 +7,35 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
   contactProperties [
     ContactProperties {
-      material1 "wheel_material"
+      material1 "wheel_material_right"
+      material2 "floor_material"
       coulombFriction [
         1, 0
       ]
-      forceDependentSlip [
-        0, 0
+      frictionRotation 0.7071 -0.7071
+      bounce 0.1
+      softERP 0.8
+      softCFM 0.0001
+    }
+    ContactProperties {
+      material1 "wheel_material_left"
+      material2 "floor_material"
+      coulombFriction [
+        1, 0
       ]
+      frictionRotation 0.7071 0.7071
+      bounce 0.1
+      softERP 0.8
+      softCFM 0.0001
     }
   ]
 }
 Viewpoint {
-  orientation -0.1210850297873183 0.40611326621096683 0.9057651078336285 0.6360313281102905
-  position -12.043482974107908 -7.034256669187277 5.641204790534352
+  orientation 0.1677569301228658 -0.16850491405777016 -0.9713205991505253 4.68772473732308
+  position -0.35424259128675534 -4.575488252738241 2.2541795728135963
 }
 RectangleArena {
+  contactMaterial "floor_material"
   floorSize 30 50
   wallThickness 0.3
   wallHeight 6
@@ -31,11 +45,11 @@ TexturedBackground {
 TexturedBackgroundLight {
 }
 Robot {
-  translation 0 0 1
+  translation 0 0 0.6
   children [
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor -0.5 0.4 -0.15
+        anchor -0.61 0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -43,28 +57,34 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.4999999999999999 0.4000000000000002 -0.15000000000000036
-        rotation 0.5773489358556707 0.5773509358554485 0.5773509358554487 2.0943999999999994
+        translation -0.61 0.4 -0.15
+        rotation 0 1 0 1.5708
         children [
-          DEF WHEEL Shape {
+          DEF WHEEL_FL Shape {
             appearance PBRAppearance {
             }
             geometry Cylinder {
-              height 0.15
+              height 0.2
               radius 0.3
             }
           }
         ]
         name "wheel_fl"
-        contactMaterial "wheel_material"
-        boundingObject USE WHEEL
+        contactMaterial "wheel_material_left"
+        boundingObject Pose {
+          children [
+            USE WHEEL_FL
+          ]
+        }
         physics Physics {
+          density 1
+          mass 1
         }
       }
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor -0.5 -0.4 -0.15
+        anchor -0.61 -0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -72,28 +92,35 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.5 -0.4 -0.15
-        rotation 0.5773489358556707 0.5773509358554485 0.5773509358554487 2.0943999999999994
+        translation -0.61 -0.4 -0.15
+        rotation 0 1 0 1.5708
         children [
-          DEF WHEEL Shape {
+          DEF WHEEL_BL Shape {
             appearance PBRAppearance {
             }
             geometry Cylinder {
-              height 0.15
+              height 0.2
               radius 0.3
             }
           }
         ]
         name "wheel_bl"
-        contactMaterial "wheel_material"
-        boundingObject USE WHEEL
-        physics Physics {
+        contactMaterial "wheel_material_right"
+        boundingObject Pose {
+          children [
+            USE WHEEL_BL
+          ]
         }
+        physics Physics {
+          density 1
+          mass 1
+        }
+        locked TRUE
       }
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor 0.5 0.4 -0.15
+        anchor 0.61 0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -101,28 +128,35 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.49999998574856314 0.3978335800111345 -0.15036783503706297
-        rotation 0.577348933179372 0.5773509373270198 0.5773509370601668 2.0944000044147275
+        translation 0.61 0.4 -0.15
+        rotation 0 1 0 1.5708
         children [
-          Shape {
+          DEF WHEEL_FR Shape {
             appearance PBRAppearance {
             }
             geometry Cylinder {
-              height 0.15
+              height 0.2
               radius 0.3
             }
           }
         ]
         name "wheel_fr"
-        contactMaterial "wheel_material"
-        boundingObject USE WHEEL
-        physics Physics {
+        contactMaterial "wheel_material_right"
+        boundingObject Pose {
+          children [
+            USE WHEEL_FR
+          ]
         }
+        physics Physics {
+          density 1
+          mass 1
+        }
+        locked TRUE
       }
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor 0.5 -0.4 -0.15
+        anchor 0.61 -0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -130,23 +164,30 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.5000000111545416 -0.4021859390136936 -0.15022479254207255
-        rotation 0.5773489364235762 0.5773509366893266 0.5773509344536669 2.0944000025016534
+        translation 0.61 -0.4 -0.15
+        rotation 0 1 0 1.5708
         children [
-          Shape {
+          DEF WHEEL_BR Shape {
             appearance PBRAppearance {
             }
             geometry Cylinder {
-              height 0.15
+              height 0.2
               radius 0.3
             }
           }
         ]
         name "wheel_br"
-        contactMaterial "wheel_material"
-        boundingObject USE WHEEL
-        physics Physics {
+        contactMaterial "wheel_material_left"
+        boundingObject Pose {
+          children [
+            USE WHEEL_BR
+          ]
         }
+        physics Physics {
+          density 1
+          mass 1
+        }
+        locked TRUE
       }
     }
     DEF BODY Shape {
@@ -160,6 +201,8 @@ Robot {
   ]
   boundingObject USE BODY
   physics Physics {
+    density 1
+    mass 1
   }
   controller "robot_controller"
 }
