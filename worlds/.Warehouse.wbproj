@@ -4,6 +4,7 @@ simulationViewPerspectives: 000000ff00000001000000020000016c000004a0010000000201
 sceneTreePerspectives: 000000ff00000001000000030000001e000002d6000000fa0100000002010000000201
 maximizedDockId: -1
 centralWidgetVisible: 1
+renderingMode: PLAIN
 orthographicViewHeight: 1
 textFiles: 0 "../../../../../../../Program Files/Webots/projects/samples/devices/controllers/vacuum_gripper/vacuum_gripper.c"
 consoles: Console:All:All

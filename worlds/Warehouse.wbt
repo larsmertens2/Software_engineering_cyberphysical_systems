@@ -7,8 +7,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.2555286247234191 0.2610190687600785 0.9308996550061557 1.6211309126953568
-  position -1.4504280958089124 -32.78721079920225 12.277292907522963
+  orientation -0.26654362959304834 0.2366340721577656 0.9343226473854719 1.7566837105611837
+  position -1.7380652974964037 -10.96912616205845 9.097626139239813
 }
 RectangleArena {
   floorSize 30 50
@@ -22,6 +22,34 @@ TexturedBackgroundLight {
 Robot {
   translation 0 0 1
   children [
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor -0.5 0.4 -0.15
+      }
+      device [
+        RotationalMotor {
+          name "motor_fl"
+        }
+      ]
+      endPoint Solid {
+        translation -0.5 0.4 -0.15
+        rotation 0.5773489358556708 0.5773509358554485 0.5773509358554485 2.0944
+        children [
+          Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.15
+              radius 0.3
+            }
+          }
+        ]
+        name "wheel_fl"
+        physics Physics {
+        }
+      }
+    }
     Shape {
       appearance PBRAppearance {
         baseColor 0 1 1
