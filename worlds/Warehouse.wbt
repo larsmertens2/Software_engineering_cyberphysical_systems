@@ -15,7 +15,6 @@ WorldInfo {
       frictionRotation 0.7071 -0.7071
       bounce 0.1
       softERP 0.8
-      softCFM 0.0001
     }
     ContactProperties {
       material1 "wheel_material_left"
@@ -26,7 +25,6 @@ WorldInfo {
       frictionRotation 0.7071 0.7071
       bounce 0.1
       softERP 0.8
-      softCFM 0.0001
     }
   ]
 }
@@ -49,7 +47,7 @@ Robot {
   children [
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor -0.61 0.4 -0.15
+        anchor -0.62 0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -57,7 +55,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.61 0.4 -0.15
+        translation -0.62 0.4 -0.15
         rotation 0 1 0 1.5708
         children [
           DEF WHEEL_FL Shape {
@@ -84,7 +82,7 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor -0.61 -0.4 -0.15
+        anchor -0.62 -0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -92,7 +90,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.61 -0.4 -0.15
+        translation -0.62 -0.4 -0.15
         rotation 0 1 0 1.5708
         children [
           DEF WHEEL_BL Shape {
@@ -120,7 +118,7 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor 0.61 0.4 -0.15
+        anchor 0.62 0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -128,7 +126,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.61 0.4 -0.15
+        translation 0.62 0.4 -0.15
         rotation 0 1 0 1.5708
         children [
           DEF WHEEL_FR Shape {
@@ -156,7 +154,7 @@ Robot {
     }
     HingeJoint {
       jointParameters HingeJointParameters {
-        anchor 0.61 -0.4 -0.15
+        anchor 0.62 -0.4 -0.15
       }
       device [
         RotationalMotor {
@@ -164,7 +162,7 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.61 -0.4 -0.15
+        translation 0.62 -0.4 -0.15
         rotation 0 1 0 1.5708
         children [
           DEF WHEEL_BR Shape {
