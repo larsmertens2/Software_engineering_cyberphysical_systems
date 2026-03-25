@@ -7,8 +7,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation -0.26654362959304834 0.2366340721577656 0.9343226473854719 1.7566837105611837
-  position -1.7380652974964037 -10.96912616205845 9.097626139239813
+  orientation -0.2013570191279302 0.03893976820487711 0.9787436054963857 2.767480571898003
+  position 10.124746614130148 -5.448191582822125 7.24137174068561
 }
 RectangleArena {
   floorSize 30 50
@@ -46,6 +46,90 @@ Robot {
           }
         ]
         name "wheel_fl"
+        physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor -0.5 -0.4 -0.15
+      }
+      device [
+        RotationalMotor {
+          name "motor_bl"
+        }
+      ]
+      endPoint Solid {
+        translation -0.5 -0.4 -0.15
+        rotation 0.5773489358556708 0.5773509358554485 0.5773509358554485 2.0944
+        children [
+          Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.15
+              radius 0.3
+            }
+          }
+        ]
+        name "wheel_bl"
+        physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor 0.5 0.4 -0.15
+      }
+      device [
+        RotationalMotor {
+          name "motor_fr"
+        }
+      ]
+      endPoint Solid {
+        translation 0.5 0.4 -0.15
+        rotation 0.5773489358556708 0.5773509358554485 0.5773509358554485 2.0944
+        children [
+          Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.15
+              radius 0.3
+            }
+          }
+        ]
+        name "wheel_fr"
+        physics Physics {
+        }
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 1 0
+        anchor 0.5 -0.4 -0.15
+      }
+      device [
+        RotationalMotor {
+          name "motor_br"
+        }
+      ]
+      endPoint Solid {
+        translation 0.5 -0.4 -0.15
+        rotation 0.5773489358556708 0.5773509358554485 0.5773509358554485 2.0944
+        children [
+          Shape {
+            appearance PBRAppearance {
+            }
+            geometry Cylinder {
+              height 0.15
+              radius 0.3
+            }
+          }
+        ]
+        name "wheel_br"
         physics Physics {
         }
       }
