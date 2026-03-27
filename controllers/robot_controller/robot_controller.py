@@ -69,6 +69,8 @@ class RobotController:
             if not self.route or self.target_node_index >= len(self.route):
                 print("No route or destination reached")
                 #TODO: Wait for next target (node to visit), this basicly means moving to the next order... (this todo is repeated below in the FSM)
+                # We should think of a robust/oop way to skip from here to the fsm (final state machine). ~ Florian
+                self.drive(0, 0)
                 self.state = "IDLE"
                 # @HERE
                 break
