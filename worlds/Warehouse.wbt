@@ -5,6 +5,7 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/robotis/turtlebot/protos/TurtleBot3Burger.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/WoodenBox.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/robotis/protos/RobotisLds01.proto"
 
 WorldInfo {
   contactProperties [
@@ -31,8 +32,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation -0.10186255972612308 0.1286521987424795 0.9864444387215976 1.352733909485512
-  position -1.1073909206763817 -2.7784749406891853 3.353350423195266
+  orientation -0.30107693717109457 0.31580684983861806 0.8997881481208125 1.628604500025565
+  position -0.10135369184561749 0.25317907817160457 7.01228457295505
 }
 RectangleArena {
   contactMaterial "floor_material"
@@ -206,6 +207,12 @@ DEF Bot_2 TurtleBot3Burger {
   translation 0 5 0
   rotation 0 0 1 1.5708
   name "Bot_2"
+  extensionSlot [
+    DEF Bot_2_GPS GPS {
+    }
+    RobotisLds01 {
+    }
+  ]
 }
 DEF Bot_1 TurtleBot3Burger {
   translation -0.3 5 0
@@ -421,6 +428,250 @@ DEF Dropoff Solid {
         height 0.001
         radius 1.5
       }
+    }
+  ]
+}
+DEF Nodes Group {
+  children [
+    DEF A2 Solid {
+      translation 0.225 6 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(1)"
+    }
+    DEF A1 Solid {
+      translation -0.225 6 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(2)"
+    }
+    DEF B1 Solid {
+      translation -0.225 6.45 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    DEF Entrance_5_7 Solid {
+      translation -0.55 6.45 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(7)"
+    }
+    DEF Entrance_6_8 Solid {
+      translation 0.55 6.45 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(8)"
+    }
+    DEF B2 Solid {
+      translation 0.225 6.45 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+    DEF C2 Solid {
+      translation 0.225 6.9 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(5)"
+    }
+    DEF C1 Solid {
+      translation -0.225 6.9 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(6)"
+    }
+    DEF D1 Solid {
+      translation -0.225 7.6 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(9)"
+    }
+    DEF D2 Solid {
+      translation 0.225 7.6 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(10)"
+    }
+    DEF E1 Solid {
+      translation -0.225 8.05 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(11)"
+    }
+    DEF Entrance_1_3 Solid {
+      translation -0.55 8.05 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(15)"
+    }
+    DEF Entrance_2_4 Solid {
+      translation 0.55 8.05 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(16)"
+    }
+    DEF E2 Solid {
+      translation 0.225 8.05 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(12)"
+    }
+    DEF F1 Solid {
+      translation -0.225 8.5 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(13)"
+    }
+    DEF F2 Solid {
+      translation 0.225 8.5 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0 1
+            metalness 0
+          }
+          geometry Box {
+            size 0.4 0.4 0.1
+          }
+        }
+      ]
+      name "solid(14)"
     }
   ]
 }
