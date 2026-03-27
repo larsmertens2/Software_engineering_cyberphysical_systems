@@ -3,6 +3,8 @@
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/RectangleArena.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/robots/robotis/turtlebot/protos/TurtleBot3Burger.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/factory/containers/protos/WoodenBox.proto"
 
 WorldInfo {
   contactProperties [
@@ -29,12 +31,12 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.1677569301228658 -0.16850491405777016 -0.9713205991505253 4.68772473732308
-  position -0.35424259128675534 -4.575488252738241 2.2541795728135963
+  orientation -0.5324992453114222 -0.017733836719761045 0.8462446837516693 3.1979480728892495
+  position 17.203951480355247 6.339216943957926 27.15121970561814
 }
 RectangleArena {
   contactMaterial "floor_material"
-  floorSize 30 50
+  floorSize 12 20
   wallThickness 0.3
   wallHeight 6
 }
@@ -198,9 +200,200 @@ Robot {
     }
   ]
   boundingObject USE BODY
-  physics Physics {
-    density 1
-    mass 1
-  }
   controller "robot_controller"
+}
+TurtleBot3Burger {
+  translation -2.61 1.36 0
+}
+DEF Aisle_2 Group {
+  children [
+    WoodenBox {
+      translation 1.2 8.5 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 2.3 8.5 0.3
+      name "wooden box(2)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 3.4 8.5 0.3
+      name "wooden box(1)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 4.5 8.5 0.3
+      name "wooden box(8)"
+      size 1 0.6 1
+    }
+  ]
+}
+DEF Aisle_4 Group {
+  children [
+    WoodenBox {
+      translation 1.2 7.6 0.3
+      name "wooden box(2)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 2.3 7.6 0.3
+      name "wooden box(2)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 3.4 7.6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 4.5 7.6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+  ]
+}
+DEF Aisle_6 Group {
+  children [
+    WoodenBox {
+      translation 1.2 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 2.3 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 3.4 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 4.5 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+  ]
+}
+DEF Aisle_8 Group {
+  children [
+    WoodenBox {
+      translation 1.2 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 2.3 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 3.4 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation 4.5 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+  ]
+}
+DEF Aisle_1 Group {
+  children [
+    WoodenBox {
+      translation -4.5 8.5 0.3
+      name "wooden box(7)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -3.4 8.5 0.3
+      name "wooden box(6)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -2.3 8.5 0.3
+      name "wooden box(5)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -1.2 8.5 0.3
+      name "wooden box(4)"
+      size 1 0.6 1
+    }
+  ]
+}
+DEF Aisle_3 Group {
+  children [
+    WoodenBox {
+      translation -4.5 7.6 0.3
+      name "wooden box(5)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -3.4 7.6 0.3
+      name "wooden box(5)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -2.3 7.6 0.3
+      name "wooden box(5)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -1.2 7.6 0.3
+      name "wooden box(6)"
+      size 1 0.6 1
+    }
+  ]
+}
+DEF Aisle_5 Group {
+  children [
+    WoodenBox {
+      translation -4.5 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -3.4 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -2.3 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -1.2 6.9 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+  ]
+}
+DEF Aisle_7 Group {
+  children [
+    WoodenBox {
+      translation -4.5 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -3.4 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -2.3 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+    WoodenBox {
+      translation -1.2 6 0.3
+      name "wooden box(3)"
+      size 1 0.6 1
+    }
+  ]
 }
