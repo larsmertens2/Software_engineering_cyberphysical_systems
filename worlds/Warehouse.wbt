@@ -32,8 +32,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation -0.30107693717109457 0.31580684983861806 0.8997881481208125 1.628604500025565
-  position -0.10135369184561749 0.25317907817160457 7.01228457295505
+  orientation -0.22836738673478685 0.24685081005249374 0.9417605928538058 1.5529853814537986
+  position -0.20269430489550497 -2.021544096325986 5.128862094961486
 }
 RectangleArena {
   contactMaterial "floor_material"
@@ -45,166 +45,8 @@ TexturedBackground {
 }
 TexturedBackgroundLight {
 }
-Robot {
-  translation -4.03 -8.93 0.6
-  children [
-    HingeJoint {
-      jointParameters HingeJointParameters {
-        anchor -0.62 0.4 -0.15
-      }
-      device [
-        RotationalMotor {
-          name "motor_fl"
-        }
-      ]
-      endPoint Solid {
-        translation -0.62 0.4 -0.15
-        rotation 0 1 0 1.5708
-        children [
-          DEF WHEEL_FL Shape {
-            appearance PBRAppearance {
-            }
-            geometry Cylinder {
-              height 0.2
-              radius 0.3
-            }
-          }
-        ]
-        name "wheel_fl"
-        contactMaterial "wheel_material_left"
-        boundingObject Pose {
-          children [
-            USE WHEEL_FL
-          ]
-        }
-        physics Physics {
-          density 1
-          mass 1
-        }
-      }
-    }
-    HingeJoint {
-      jointParameters HingeJointParameters {
-        anchor -0.62 -0.4 -0.15
-      }
-      device [
-        RotationalMotor {
-          name "motor_bl"
-        }
-      ]
-      endPoint Solid {
-        translation -0.62 -0.4 -0.15
-        rotation 0 1 0 1.5708
-        children [
-          DEF WHEEL_BL Shape {
-            appearance PBRAppearance {
-            }
-            geometry Cylinder {
-              height 0.2
-              radius 0.3
-            }
-          }
-        ]
-        name "wheel_bl"
-        contactMaterial "wheel_material_right"
-        boundingObject Pose {
-          children [
-            USE WHEEL_BL
-          ]
-        }
-        physics Physics {
-          density 1
-          mass 1
-        }
-        locked TRUE
-      }
-    }
-    HingeJoint {
-      jointParameters HingeJointParameters {
-        anchor 0.62 0.4 -0.15
-      }
-      device [
-        RotationalMotor {
-          name "motor_fr"
-        }
-      ]
-      endPoint Solid {
-        translation 0.62 0.4 -0.15
-        rotation 0 1 0 1.5708
-        children [
-          DEF WHEEL_FR Shape {
-            appearance PBRAppearance {
-            }
-            geometry Cylinder {
-              height 0.2
-              radius 0.3
-            }
-          }
-        ]
-        name "wheel_fr"
-        contactMaterial "wheel_material_right"
-        boundingObject Pose {
-          children [
-            USE WHEEL_FR
-          ]
-        }
-        physics Physics {
-          density 1
-          mass 1
-        }
-        locked TRUE
-      }
-    }
-    HingeJoint {
-      jointParameters HingeJointParameters {
-        anchor 0.62 -0.4 -0.15
-      }
-      device [
-        RotationalMotor {
-          name "motor_br"
-        }
-      ]
-      endPoint Solid {
-        translation 0.62 -0.4 -0.15
-        rotation 0 1 0 1.5708
-        children [
-          DEF WHEEL_BR Shape {
-            appearance PBRAppearance {
-            }
-            geometry Cylinder {
-              height 0.2
-              radius 0.3
-            }
-          }
-        ]
-        name "wheel_br"
-        contactMaterial "wheel_material_left"
-        boundingObject Pose {
-          children [
-            USE WHEEL_BR
-          ]
-        }
-        physics Physics {
-          density 1
-          mass 1
-        }
-        locked TRUE
-      }
-    }
-    DEF BODY Shape {
-      appearance PBRAppearance {
-        baseColor 0 1 1
-      }
-      geometry Box {
-        size 1 1.4 0.4
-      }
-    }
-  ]
-  boundingObject USE BODY
-  controller "robot_controller"
-}
 DEF Bot_2 TurtleBot3Burger {
-  translation 0 5 0
+  translation 0 5.3 0
   rotation 0 0 1 1.5708
   name "Bot_2"
   extensionSlot [
@@ -215,12 +57,12 @@ DEF Bot_2 TurtleBot3Burger {
   ]
 }
 DEF Bot_1 TurtleBot3Burger {
-  translation -0.3 5 0
+  translation -0.3 5.3 0
   rotation 0 0 1 1.5708
   name "Bot_1"
 }
 DEF Bot_3 TurtleBot3Burger {
-  translation 0.3 5 0
+  translation 0.3 5.3 0
   rotation 0 0 1 1.5708
   name "Bot_3"
 }
@@ -417,7 +259,7 @@ DEF Aisle_7 Group {
   ]
 }
 DEF Dropoff Solid {
-  translation 0 4 0
+  translation 0 4.7 0
   children [
     Shape {
       appearance PBRAppearance {
@@ -426,13 +268,57 @@ DEF Dropoff Solid {
       }
       geometry Cylinder {
         height 0.001
-        radius 1.5
       }
     }
   ]
 }
 DEF Nodes Group {
   children [
+    DEF Dropoff_1 Solid {
+      translation -0.3 5.3 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0.5 0.5
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(1)"
+    }
+    DEF Dropoff_2 Solid {
+      translation 0 5.3 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0.5 0.5
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(18)"
+    }
+    DEF Dropoff_3 Solid {
+      translation 0.3 5.3 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 0.5 0.5
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(19)"
+    }
     DEF A2 Solid {
       translation 0.225 6 0
       children [
@@ -446,7 +332,7 @@ DEF Nodes Group {
           }
         }
       ]
-      name "solid(1)"
+      name "solid(17)"
     }
     DEF A1 Solid {
       translation -0.225 6 0
