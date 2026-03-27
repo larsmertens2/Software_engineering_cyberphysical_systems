@@ -31,8 +31,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation -0.39516606748030336 0.3811419795553877 0.8358077353870043 1.7846456471414927
-  position 0.8005420628113483 -5.348009975774738 11.992134298673397
+  orientation -0.32017173434057306 0.33453689427210975 0.8863267607943024 1.647509783854248
+  position 0.40033928085676346 -0.9526074868152552 6.9903730620249656
 }
 RectangleArena {
   contactMaterial "floor_material"
@@ -202,8 +202,20 @@ Robot {
   boundingObject USE BODY
   controller "robot_controller"
 }
-TurtleBot3Burger {
-  translation -2.61 1.36 0
+DEF Bot_2 TurtleBot3Burger {
+  translation 0 5 0
+  rotation 0 0 1 1.5708
+  name "Bot_2"
+}
+DEF Bot_1 TurtleBot3Burger {
+  translation -0.3 5 0
+  rotation 0 0 1 1.5708
+  name "Bot_1"
+}
+DEF Bot_3 TurtleBot3Burger {
+  translation 0.3 5 0
+  rotation 0 0 1 1.5708
+  name "Bot_3"
 }
 DEF Aisle_2 Group {
   children [
