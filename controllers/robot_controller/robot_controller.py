@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import sys
 from controller import Robot
 from shortest_path import shortest_path
 
@@ -9,6 +10,16 @@ from shortest_path import shortest_path
 
 # This documentation helped building the controller:
 #   https://pockerman-py-cubeai.readthedocs.io/en/latest/Examples/Webots/webots_ctrl_dev_101.html
+
+
+# importing other controllers
+parent_dir = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(parent_dir)
+
+# Nu kun je importeren vanuit de andere submap
+from task_controller.task_controller import TaskManager
+
+
 
 class RobotController:
     def __init__(self):
@@ -37,12 +48,20 @@ class RobotController:
 
         # States:
         # Possible states: ROTATING, MOVING, IDLE, ... #TODO with more advanced steps later in the project (collision preventiopn etc...)
-        self.state = "ROTATING"
+        self.state = "IDLE"
 
         # Map:
         self.load_map()
         self.current_node = "Droppoff_2" # Currently this controller is for r2, which is starting on droppoff 2
         self.target_node_index = 0
+        self.route = []
+
+        #initialising Taskmanager
+        self.taskmanager = TaskManager()
+        self.current_tasks_list = self.taskmanager.get_task_list(4)      # De lijst met taken die we van de manager krijgen
+        self.final_destination = None   # De dropoff van de huidige taak
+        self.current_task = None
+        self.ReachedPackage = False
 
     def load_map(self):
         data_path = os.path.join(os.path.dirname(__file__), "map.json")
@@ -66,61 +85,72 @@ class RobotController:
 
     def run(self):
         while self.robot.step(self.time_step) != -1:
+            # 1. CHECK: Zijn we op een eindbestemming?
             if not self.route or self.target_node_index >= len(self.route):
-                print("No route or destination reached")
-                #TODO: Wait for next target (node to visit), this basicly means moving to the next order... (this todo is repeated below in the FSM)
-                # We should think of a robust/oop way to skip from here to the fsm (final state machine). ~ Florian
                 self.drive(0, 0)
-                self.state = "IDLE"
-                # @HERE
-                break
-            
-            target_name = self.route[self.target_node_index]
-            target_position = self.nodes[target_name]
-
-            position = self.gps.getValues()
-            if math.isnan(position[0]) or math.isnan(position[1]): continue
-
-            distance_x = target_position['x'] - position[0]
-            # print(f"target_x: {target_position['x']}, position_x: {position[0]}") # [DEBUG]
-            distance_y = target_position['y'] - position[1]
-            # print(f"target_y: {target_position['y']}, position_y: {position[1]}") # [DEBUG]
-            distance = math.sqrt(distance_x**2 + distance_y**2)
-
-            target_angle = math.atan2(distance_y, distance_x)
-            current_angle = self.get_direction()
-            angle_diff = target_angle - current_angle
-            while angle_diff > math.pi: angle_diff -= 2 * math.pi
-            while angle_diff < -math.pi: angle_diff += 2 * math.pi
-            # print(angle_diff) # [DEBUG]
-
-            # FSM for the different states:
-            if self.state == "ROTATING":
-                if abs(angle_diff) > self.angle_error:
-                    if angle_diff > 0:
-                        rotate_speed = -0.8 #TODO: Fix magic numbers on top of this doc
-                    else:
-                        rotate_speed = 0.8 #TODO: Fix magic numbers on top of this doc
-                    self.drive(rotate_speed, -rotate_speed)
-                else:
-                    self.state = "MOVING"
                 
-            elif self.state == "MOVING":
-                if distance > self.dist_error:
-                    driving_speed = 4.0 #TODO: Fix magic numbers on top of this doc
-                    # Used Gemini (27/03/2026) to implement a correction to account for slip etc... so the robot isn't driving straigth forward blindly
-                    correction = angle_diff * 3.0 #TODO: Fix magic numbers on top of this doc
-                    self.drive(driving_speed - correction, driving_speed + correction)
-                else:
-                    print(f"Node {target_name} reached")
-                    self.target_node_index += 1
-                    self.state = "ROTATING"
+                # Check of we bij pickup of dropoff zijn (gebruik ==)
+                if self.current_task is not None:
+                    if self.current_node == self.current_task[0] and not self.ReachedPackage:
+                        print("REACHED PACKAGE")
+                        self.ReachedPackage = True
+                    elif self.current_node == self.current_task[1] and self.ReachedPackage:
+                        print("FINISHED TASK")
+                        self.ReachedPackage = False
+                        self.current_tasks_list.pop(0)
+                        self.current_task = None # Pak volgende taak in IDLE
+                
+                self.state = "IDLE"
 
-            elif self.state == "IDLE":
-                print("Idling") 
-                #TODO: Implement getting new tasks, combining this movement code into a fully functioning warehouse order-picking project. (implement a warehouse with central controller)
-                # @HERE
+            # 2. PLANNING OF RIJDEN
+            if self.state == "IDLE":
+                print("idle")
+                if self.current_task is None:
+                    if len(self.current_tasks_list) > 0:
+                        self.current_task = self.current_tasks_list[0]
+                        print(f"Nieuwe taak: Pickup {self.current_task[0]}")
+                    else:
+                        continue # Wacht op taken
+                
+                # Bepaal route
+                doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
+                self.get_route(doel)
+                self.target_node_index = 0
+                self.state = "ROTATING"
+
+            # 3. NAVIGATIE (Alleen uitvoeren als we NIET idle zijn)
+            else:
+                target_name = self.route[self.target_node_index]
+                target_position = self.nodes[target_name]
+
+                position = self.gps.getValues()
+                if math.isnan(position[0]): continue
+
+                # Berekeningen (afstand/hoek)
+                distance_x = target_position['x'] - position[0]
+                distance_y = target_position['y'] - position[1]
+                distance = math.sqrt(distance_x**2 + distance_y**2)
+                target_angle = math.atan2(distance_y, distance_x)
+                current_angle = self.get_direction()
+                angle_diff = (target_angle - current_angle + math.pi) % (2 * math.pi) - math.pi
+
+                if self.state == "ROTATING":
+                    if abs(angle_diff) > self.angle_error:
+                        val = -0.8 if angle_diff > 0 else 0.8
+                        self.drive(val, -val)
+                    else:
+                        self.state = "MOVING"
+                
+                elif self.state == "MOVING":
+                    if distance > self.dist_error:
+                        correction = angle_diff * 3.0
+                        self.drive(4.0 - correction, 4.0 + correction)
+                    else:
+                        print(f"Node {target_name} reached")
+                        self.current_node = target_name # CRUCIAAL: update locatie
+                        self.target_node_index += 1     # Verhoog teller
+                        self.state = "ROTATING"
+
 
 robot = RobotController()
-robot.get_route("Entrance_2_4") #TODO: set route with warehouse control logic!? # @HERE
 robot.run()
