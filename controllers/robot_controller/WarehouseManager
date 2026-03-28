@@ -1,0 +1,30 @@
+import sys
+import os
+
+# Zorg dat de huidige map (controllers) in het zoekpad van Python staat
+current_dir = os.path.dirname(__file__)
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
+# Nu kun je ze importeren: mapnaam.bestandsnaam
+from task_controller.task_controller import TaskManager
+from robot_controller.robot_controller import RobotController
+
+
+class WarehouseManager:
+    def __init__(self):
+        self.task_manager = TaskManager()
+        
+        self.robots = [] # lijst van alle bots
+        
+        # 3. De centrale takenlijst
+        self.pending_tasks = self.task_manager.get_task_list(10)
+
+    def assign_tasks(self):
+        """Verdeel taken over robots die IDLE zijn."""
+        pass
+
+    def update(self):
+        """Hoofdloop van de manager."""
+
+        self.assign_tasks()
