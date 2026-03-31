@@ -147,7 +147,7 @@ class RobotController:
                         self.drive(4.0 - correction, 4.0 + correction)
                     else:
                         print(f"Node {target_name} reached")
-                        self.current_node = target_name # CRUCIAAL: update locatie
+                        self.current_node = target_name 
                         self.target_node_index += 1     # Verhoog teller
                         self.state = "ROTATING"
 
