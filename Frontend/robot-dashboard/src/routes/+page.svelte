@@ -45,7 +45,7 @@
 <style>
 	.dashboard {
 		display: flex;
-		height: calc(100vh - 65px); /* Header eraf trekken */
+		height: calc(100vh - 65px);
 	}
 
 	/* Content Styling */

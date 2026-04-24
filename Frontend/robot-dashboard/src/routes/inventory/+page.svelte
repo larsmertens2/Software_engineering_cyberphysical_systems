@@ -1,26 +1,35 @@
 <script>
-	// We gebruiken $state voor de ruwe data
-	let searchTerm = $state("");
-	
-	let inventory = $state([
-		{ id: "001", name: "Smartphone Case", category: "Electronics", stock: 45, location: "Aisle 1" },
-		{ id: "002", name: "Bluetooth Speaker", category: "Electronics", stock: 12, location: "Aisle 3" },
-		{ id: "042", name: "Coffee Mug", category: "Kitchenware", stock: 89, location: "Aisle 5" },
-		{ id: "105", name: "Ergonomic Mouse", category: "Office", stock: 23, location: "Aisle 2" },
-		{ id: "210", name: "USB-C Cable", category: "Electronics", stock: 150, location: "Aisle 1" }
-	]);
+    let { data } = $props(); 
 
-	let filteredInventory = $derived(
-		inventory.filter(item => 
-			item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-			item.id.toLowerCase().includes(searchTerm.toLowerCase())
-		)
-	);
+    let searchTerm = $state("");
+
+    // We leiden de inventory direct af van de data prop.
+    // Zodra 'data' update, update 'inventory' automatisch mee.
+    let inventory = $derived(
+        data.items?.map(item => ({
+            id: item.id.toString(),
+            name: item.name,
+            category: item.category,
+            stock: item.stock,
+            location: `Aisle ${item.aisle}`
+        })) ?? []
+    );
+
+    // De gefilterde lijst leiden we weer af van de inventory
+    let filteredInventory = $derived(
+        inventory.filter(item => 
+            item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            item.id.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    );
 </script>
 
 <div class="dashboard">
 	<section class="main-content">
 		<header class="content-header">
+			{#if data.error}
+				<div class="error-banner">{data.error}</div>
+			{/if}
 			<div>
 				<h1>Inventory Overview</h1>
 				<p class="subtitle">Manage and locate warehouse items</p>
@@ -36,40 +45,41 @@
 		</header>
 
 		<div class="table-wrapper">
+			<div class="titels">
+			</div>
 			<table>
-				<thead>
+                <tbody>
 					<tr>
-						<th>Item ID</th>
-						<th>Name</th>
-						<th>Category</th>
-						<th>Stock</th>
-						<th>Location</th>
+						<td>ID</td>
+						<td>Name</td>
+						<td>Category</td>
+						<td>Stock</td>
+						<td>Aisle</td>
 					</tr>
-				</thead>
-				<tbody>
-					{#each filteredInventory as item}
-						<tr>
-							<td class="id-cell">{item.id}</td>
-							<td class="bold">{item.name}</td>
-							<td><span class="tag">{item.category}</span></td>
-							<td class={item.stock < 20 ? 'low-stock' : ''}>{item.stock} units</td>
-							<td>{item.location}</td>
-						</tr>
-					{:else}
-						<tr>
-							<td colspan="5" class="no-results">No items found matching "{searchTerm}"</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+                    {#each filteredInventory as item}
+                        <tr>
+                            <td class="id-cell">{item.id}</td>
+                            <td class="bold">{item.name}</td>
+                            <td><span class="tag">{item.category}</span></td>
+                            <td class={item.stock < 20 ? 'low-stock' : ''}>{item.stock} units</td>
+                            <td>{item.location}</td>
+                        </tr>
+                    {:else}
+                        <tr>
+                            <td colspan="5" class="no-results">
+                                {searchTerm ? `No items found matching "${searchTerm}"` : 'Loading inventory...'}
+                            </td>
+                        </tr>
+                    {/each}
+                </tbody>
+            </table>
 		</div>
 	</section>
 </div>
 
 <style>
-	/* De algemene dashboard en sidebar styling is hetzelfde als je +page.svelte */
 	.dashboard { display: flex; height: calc(100vh - 65px); }
-	.main-content { flex: 1; padding: 2rem; overflow-y: auto; }
+	.main-content { flex: 1; padding: 2rem;}
 	
 	.content-header { 
 		display: flex; 
@@ -84,15 +94,8 @@
 	/* Zoekbalk Styling */
 	.search-container {
 		position: relative;
-		width: 300px;
-	}
-
-	.search-icon {
-		position: absolute;
-		left: 12px;
-		top: 50%;
-		transform: translateY(-50%);
-		color: #999;
+		width: 10%;
+		margin-left: 10%;
 	}
 
 	input {
@@ -110,7 +113,6 @@
 	/* Tabel Details */
 	.table-wrapper { background: white; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; }
 	table { width: 100%; border-collapse: collapse; }
-	th { background: #fcfcfc; padding: 1rem; text-align: left; font-size: 0.85rem; color: #666; border-bottom: 1px solid #eee; }
 	td { padding: 1rem; border-bottom: 1px solid #f9f9f9; }
 
 	.id-cell { font-family: monospace; color: #007bff; font-weight: 600; }
@@ -126,4 +128,5 @@
 
 	.low-stock { color: #d9534f; font-weight: bold; }
 	.no-results { text-align: center; padding: 3rem; color: #999; font-style: italic; }
+	.error-banner { background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
 </style>
