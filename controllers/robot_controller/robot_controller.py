@@ -52,7 +52,7 @@ class RobotController:
 
         # Map:
         self.load_map()
-        self.current_node = "Droppoff_2" # Currently this controller is for r2, which is starting on droppoff 2
+        self.current_node = "Droppoff_2"
         self.target_node_index = 0
         self.route = []
 
@@ -110,13 +110,16 @@ class RobotController:
                         self.current_task = self.current_tasks_list[0]
                         print(f"Nieuwe taak: Pickup {self.current_task[0]}")
                     else:
-                        continue # Wacht op taken
+                        self.current_tasks_list = self.taskmanager.get_task_list(4)
+                        print("ASKED API")
                 
-                # Bepaal route
-                doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
-                self.get_route(doel)
-                self.target_node_index = 0
-                self.state = "ROTATING"
+                if self.current_task is not None:
+                    doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
+                    self.get_route(doel)
+                    self.target_node_index = 0
+                    self.state = "ROTATING"
+                else:
+                    continue
 
             # 3. NAVIGATIE (Alleen uitvoeren als we NIET idle zijn)
             else:

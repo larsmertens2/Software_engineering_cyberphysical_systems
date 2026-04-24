@@ -1,47 +1,47 @@
+import requests
+
 class TaskManager:
     def __init__(self):
-        # Lijst met orders: (pickup_node, dropoff_node)
-        self.queue = [
-            # --- Sector: Diep Magazijn (Rij F en E) ---
-            ("F1", "Droppoff_1"), # Van linksachter naar links-dropoff
-            ("F2", "Droppoff_3"), # Van rechtsachter naar rechts-dropoff
-            ("E1", "Droppoff_2"), # Via centrale as naar dropoff 2
-            ("Entrance_1_3", "Droppoff_1"), # Pickup bij zij-ingang boven
+        # Let op: als je met Docker werkt, moet 'localhost' 
+        # soms het IP van je host machine zijn, of '127.0.0.1'
+        self.base_url = "http://localhost:5000/api/queue"
+        self.robot_id = "bot_2" 
+        self.dropoff_point = "Droppoff_2" # MOET matchen met map.json!
 
-            # --- Sector: Midden Magazijn (Rij D en C) ---
-            ("D1", "Droppoff_3"), # Diagonaal door het magazijn
-            ("D2", "Droppoff_2"),
-            ("C1", "Droppoff_1"),
-            ("C2", "Droppoff_3"),
-
-            # --- Sector: Voorzijde (Rij B en A) ---
-            ("B1", "Droppoff_2"),
-            ("B2", "Droppoff_1"),
-            ("Entrance_5_7", "Droppoff_3"), # Pickup bij zij-ingang onder
-            ("A2", "Droppoff_2"),
-
-            # --- Mix van uithoeken ---
-            ("Entrance_2_4", "Droppoff_1"),
-            ("F2", "Droppoff_2"),
-            ("Entrance_6_8", "Droppoff_3"),
-            ("E2", "Droppoff_1"),
-            ("B1", "Droppoff_3"),
-            ("D1", "Droppoff_2"),
-            ("A1", "Droppoff_1"),
-            ("F1", "Droppoff_3")
-        ]
+        self.aisle_to_entrance = {
+            1: "Entrance_1_3", 3: "Entrance_1_3",
+            2: "Entrance_2_4", 4: "Entrance_2_4",
+            5: "Entrance_5_7", 7: "Entrance_5_7",
+            6: "Entrance_6_8", 8: "Entrance_6_8"
+        }
 
     def get_task_list(self, size):
-        tasks_to_give = []
+        try:
+            # We sturen robot_id en batch_size naar de Flask claim endpoint
+            payload = {"robot_id": self.robot_id, "batch_size": size}
+            response = requests.post(f"{self.base_url}/claim", json=payload, timeout=5)
+            
+            if response.status_code == 200:
+                api_tasks = response.json()
+                
+                # Als de lijst leeg is, zijn er geen 'pending' taken
+                if not api_tasks:
+                    return []
 
-        for i in range(size):
-            if(len(self.queue) > 0):            
-                task = self.queue.pop(0)
-                tasks_to_give.append(task)
+                formatted_tasks = []
+                for t in api_tasks:
+                    # 'aisle' komt uit de JOIN in je Flask query
+                    aisle_num = t.get('aisle')
+                    pickup_node = self.aisle_to_entrance.get(aisle_num, "Entrance_1_3")
+                    
+                    # We geven [Pickup, Dropoff, Task_ID] terug
+                    formatted_tasks.append([pickup_node, self.dropoff_point])
+                
+                #print(f"Robot {self.robot_id} heeft {len(formatted_tasks)} taken geclaimd.")
+                return formatted_tasks
             else:
-                break
-        
-        return tasks_to_give
-    
-    def add_Task(self, task):
-        self.queue.append(task)
+                print(f"Claim mislukt: HTTP {response.status_code} - {response.text}")
+                
+        except Exception as e:
+            print(f"Fout bij verbinden met Flask: {e}")
+        return []

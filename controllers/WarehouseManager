@@ -1,7 +1,6 @@
 import sys
 import os
 
-# Zorg dat de huidige map (controllers) in het zoekpad van Python staat
 current_dir = os.path.dirname(__file__)
 if current_dir not in sys.path:
     sys.path.append(current_dir)
