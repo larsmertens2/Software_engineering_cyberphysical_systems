@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS job_queue (
     item_id INT NOT NULL,
     status ENUM('pending', 'assigned', 'completed') DEFAULT 'pending',
     robot_id VARCHAR(50) DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Voegt automatisch de huidige tijd toe
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items(id)
 );
 

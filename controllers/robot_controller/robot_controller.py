@@ -96,9 +96,17 @@ class RobotController:
                         self.ReachedPackage = True
                     elif self.current_node == self.current_task[1] and self.ReachedPackage:
                         print("FINISHED TASK")
+                        
+                        # 1. Haal de ID op (zat op plek 3 in de lijst)
+                        current_task_id = self.current_task[2]
+                        
+                        # 2. Meld de taak af bij de database
+                        self.taskmanager.complete_task(current_task_id)
+                        
+                        # 3. Reset voor de volgende taak
                         self.ReachedPackage = False
                         self.current_tasks_list.pop(0)
-                        self.current_task = None # Pak volgende taak in IDLE
+                        self.current_task = None
                 
                 self.state = "IDLE"
 
