@@ -25,7 +25,8 @@ class RobotController:
     def __init__(self):
         self.robot = Robot()
         self.time_step = int(self.robot.getBasicTimeStep())
-        self.robot_name = self.robot.getName() 
+        # self.robot_name = self.robot.getName() #alle robots
+        self.robot_name = "Bot_2"
         self.taskmanager = TaskManager(self.robot_name)
         robot_name = self.robot.getName()  # Geeft "Bot_1", "Bot_2", of "Bot_3"
         self.taskmanager = TaskManager(robot_name)
@@ -35,8 +36,8 @@ class RobotController:
         self.max_speed = 4 # Max is 6.28
         self.dist_error = 0.05 # Meters
         self.angle_error = 0.04 # Radians
-        self.obstacle_threshold = 0.2  # Afstand in meters
-        self.view_angle = 90 # Graden om te scannen /2 links, /2 rechts
+        self.obstacle_threshold = 0.15  # Afstand in meters, afblijven werkt fatsoenlijk 
+        self.view_angle = 75 # Graden om te scannen /2 links, /2 rechts,afblijven werkt fatsoenlijk 
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -66,7 +67,8 @@ class RobotController:
         "Bot_1": "Droppoff_1",
         "Bot_2": "Droppoff_2",
         "Bot_3": "Droppoff_3",
-        }  
+        }
+
         self.current_node = dropoff_map.get(self.robot_name, "Droppoff_2")
         self.target_node_index = 0
         self.route = []

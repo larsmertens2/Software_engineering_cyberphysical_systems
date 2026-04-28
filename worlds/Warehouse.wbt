@@ -32,8 +32,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation -0.5592056908968612 0.6075005843988752 0.5641205857115916 2.0419833524586073
-  position 0.3973936165630428 5.750477520367638 9.784996967364426
+  orientation -0.5746106569142613 0.5997103559846477 0.5569291533806865 2.0885505891993623
+  position 0.5382647914060623 6.6712276117201 19.144044483556094
 }
 RectangleArena {
   contactMaterial "floor_material"
@@ -65,7 +65,6 @@ DEF Bot_1 TurtleBot3Burger {
   translation -0.3 5.3 0
   rotation 0 0 1 1.5708
   name "Bot_1"
-  controller "robot_controller"
   extensionSlot [
     Compass {
       name "Compass"
@@ -81,7 +80,6 @@ DEF Bot_3 TurtleBot3Burger {
   translation 0.3 5.3 0
   rotation 0 0 1 1.5708
   name "Bot_3"
-  controller "robot_controller"
   extensionSlot [
     Compass {
       name "Compass"
@@ -426,6 +424,36 @@ DEF Nodes Group {
       ]
       name "solid(8)"
     }
+    DEF Entrance_6_8 Solid {
+      translation 0.55 6.45 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(20)"
+    }
+    DEF Entrance_6_8 Solid {
+      translation -0.55 6.45 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(21)"
+    }
     DEF B2 Solid {
       translation 0.225 6.45 0
       children [
@@ -531,6 +559,21 @@ DEF Nodes Group {
       ]
       name "solid(15)"
     }
+    DEF Entrance_1_3 Solid {
+      translation -0.55 8.05 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(22)"
+    }
     DEF Entrance_2_4 Solid {
       translation 2 8.05 0
       children [
@@ -545,6 +588,21 @@ DEF Nodes Group {
         }
       ]
       name "solid(16)"
+    }
+    DEF Entrance_2_4 Solid {
+      translation 0.55 8.05 0
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColor 1 1 0
+            metalness 0
+          }
+          geometry Box {
+            size 0.2 0.2 0.1
+          }
+        }
+      ]
+      name "solid(23)"
     }
     DEF E2 Solid {
       translation 0.225 8.05 0
