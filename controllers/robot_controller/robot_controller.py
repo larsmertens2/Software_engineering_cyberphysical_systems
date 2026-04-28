@@ -89,22 +89,29 @@ class RobotController:
         self.right_motor.setVelocity(right_speed)
 
     def is_path_clear(self):
-        """Checkt of er een obstakel recht voor de robot staat."""
         range_image = self.lidar.getRangeImage()
         if not range_image:
             return True
 
-        # De LDS-01 heeft 360 metingen. 
-        # Index 0 is meestal recht vooruit. We kijken in een hoek van 40 graden (-20 tot +20).
-        front_indices = list(range(0, 20)) + list(range(340, 360))
+        # Instellingen voor de scan
+        vooruit_index = 180  # Jouw ontdekking
+        kijkhoek = 40        # Hoeveel graden we in totaal scannen (20 links, 20 rechts)
         
-        front_indices = list(range(0, 30)) + list(range(330, 360))
-
-        for i in front_indices:
-            distance = range_image[i]
-            if 0 < distance < self.obstacle_threshold:
-                print(f"OBSTACLE DETECTED at index {i}, distance: {distance}")
-                return False # Obstakel gedetecteerd
+        # We berekenen de indices die we willen controleren
+        # Voorbeeld: van 160 tot 200
+        start_index = vooruit_index - (kijkhoek // 2)
+        eind_index = vooruit_index + (kijkhoek // 2)
+        
+        for i in range(start_index, eind_index):
+            # Gebruik modulo 360 om altijd binnen de lijst-index te blijven
+            index = i % 360
+            distance = range_image[index]
+            
+            # Check of er iets binnen de drempelwaarde is
+            # We negeren 0.0 tot 0.12m omdat dat vaak de behuizing van de eigen robot is
+            if 0.12 < distance < self.obstacle_threshold:
+                return False
+                
         return True
     
     def run(self):
