@@ -11,7 +11,7 @@ class TaskManager:
         "Bot_2": "Droppoff_2",
         "Bot_3": "Droppoff_3",
         }     
-        self.dropoff_point = dropoff_map.get(robot_id, "Droppoff_2")  # Default naar Droppoff_1 als robot_id niet herkend wordt
+        self.dropoff_point = dropoff_map.get(robot_id, "Droppoff_2") 
         
         self.aisle_to_entrance = {
             1: "Entrance_1_3", 3: "Entrance_1_3",
