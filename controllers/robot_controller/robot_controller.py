@@ -37,7 +37,6 @@ class RobotController:
         self.angle_error = 0.04 # Radians
         self.obstacle_threshold = 0.2  # Afstand in meters
         self.view_angle = 90 # Graden om te scannen /2 links, /2 rechts
-        self.obstacle_threshold = 0.1  # Afstand in meters
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -107,11 +106,10 @@ class RobotController:
 
         # Instellingen voor de scan
         vooruit_index = 180  # Lidar sensor staat achterstevoren
-        kijkhoek = self.view_angle        # Hoeveel graden we in scannen (20 links, 20 rechts)
-        
+
         # We berekenen de indices die we willen controleren 160-200 graden
-        start_index = vooruit_index - (kijkhoek // 2)
-        eind_index = vooruit_index + (kijkhoek // 2)
+        start_index = vooruit_index - (self.view_angle // 2)
+        eind_index = vooruit_index + (self.view_angle // 2)
         
         for i in range(start_index, eind_index):
             # Gebruik gehele getallen om binnen de lijst-index te blijven
@@ -133,8 +131,7 @@ class RobotController:
         left_distance = range_image[90]
         right_distance = range_image[270]
 
-        # Drempelwaarde voor smalle doorgang (bijvoorbeeld 0.2 meter)
-        narrow_threshold = 0.2
+        narrow_threshold = 0.2  # Drempelwaarde voor het detecteren van een smalle doorgang
 
         if left_distance < narrow_threshold and right_distance < narrow_threshold:
             return True #als beide zijden dicht zijn, is er waarschijnlijk een smalle doorgang
@@ -220,6 +217,7 @@ class RobotController:
                     self.left_distance = range_image[90]  # Rechts of links van de robot
                     self.right_distance = range_image[270]  # andere kant van de robot
 
+                    print(self.robot_name, range_image[180], path_is_clear)
                     if not path_is_clear:
                         # STOP de robot als het pad niet vrij is
                         self.drive(0, 0)
