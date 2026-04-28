@@ -26,6 +26,8 @@ services:
       DB_USER: secs
       DB_PASSWORD: secs
       DB_NAME: warehouse
+    volumes:
+      - ./controllers/robot_controller/map.json:/app/controllers/robot_controller/map.json
     depends_on:
       - db
 

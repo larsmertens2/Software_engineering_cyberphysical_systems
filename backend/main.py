@@ -4,10 +4,25 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import mysql.connector
 from flask_socketio import SocketIO, emit
+import json
 
 app = Flask(__name__)
 CORS(app) 
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+
+def resolve_map_file_path():
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "controllers", "robot_controller", "map.json"),
+        os.path.join(os.path.dirname(__file__), "controllers", "robot_controller", "map.json"),
+        "/app/controllers/robot_controller/map.json",
+    ]
+
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+
+    return candidates[0]
 
 def get_db_connection():
     for i in range(5):
@@ -176,6 +191,20 @@ def get_queue_status():
     cursor.close()
     conn.close()
     return jsonify(status_list)
+
+
+@app.route('/api/map', methods=['GET'])
+def get_map():
+    file_path = resolve_map_file_path()
+
+    try:
+        if not os.path.exists(file_path):
+            return jsonify({"error": f"Bestand niet gevonden op {file_path}"}), 404
+
+        with open(file_path, encoding='utf-8') as file_handle:
+            return jsonify(json.load(file_handle))
+    except Exception as error:
+        return jsonify({"error": str(error)}), 500
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True,  allow_unsafe_werkzeug=True)
