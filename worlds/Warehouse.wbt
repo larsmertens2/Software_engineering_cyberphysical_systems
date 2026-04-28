@@ -32,8 +32,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation -0.3620199452597062 0.3740727061506782 0.853821509302306 1.6957599355416826
-  position 0.04617030852918992 -3.8590415688937503 10.594128525274918
+  orientation -0.5592056908968612 0.6075005843988752 0.5641205857115916 2.0419833524586073
+  position 0.3973936165630428 5.750477520367638 9.784996967364426
 }
 RectangleArena {
   contactMaterial "floor_material"
@@ -151,9 +151,14 @@ DEF Aisle_8 Group {
       size 1 0.6 1
     }
     DEF Aisle_8_Rack_3 WoodenBox {
-      translation 2.3 6 0.3
+      translation 2.3 5.99 0.3
       name "Aisle_8_Rack_3"
       size 1 0.6 1
+    }
+    DEF Aisle_8_Rack_3 WoodenBox {
+      translation 2.3 4.89 0.3
+      name "Obstruction_Object"
+      size 0.3 0.3 0.3
     }
     DEF Aisle_8_Rack_2 WoodenBox {
       translation 3.4 6 0.3
@@ -370,7 +375,7 @@ DEF Nodes Group {
       name "solid(3)"
     }
     DEF Entrance_5_7 Solid {
-      translation -0.55 6.45 0
+      translation -2 6.45 0
       children [
         Shape {
           appearance PBRAppearance {
@@ -385,7 +390,7 @@ DEF Nodes Group {
       name "solid(7)"
     }
     DEF Entrance_6_8 Solid {
-      translation 0.55 6.45 0
+      translation 2 6.45 0
       children [
         Shape {
           appearance PBRAppearance {
@@ -490,7 +495,7 @@ DEF Nodes Group {
       name "solid(11)"
     }
     DEF Entrance_1_3 Solid {
-      translation -0.55 8.05 0
+      translation -2 8.05 0
       children [
         Shape {
           appearance PBRAppearance {
@@ -505,7 +510,7 @@ DEF Nodes Group {
       name "solid(15)"
     }
     DEF Entrance_2_4 Solid {
-      translation 0.55 8.05 0
+      translation 2 8.05 0
       children [
         Shape {
           appearance PBRAppearance {

@@ -31,7 +31,7 @@ class RobotController:
         self.max_speed = 4 # Max is 6.28
         self.dist_error = 0.05 # Meters
         self.angle_error = 0.04 # Radians
-        self.obstacle_threshold = 0.2  # Afstand in meters
+        self.obstacle_threshold = 0.1  # Afstand in meters
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -112,6 +112,23 @@ class RobotController:
                 return False
                 
         return True
+
+    def detect_narrow_corridor(self):
+        range_image = self.lidar.getRangeImage()
+        if not range_image: 
+            return False
+
+        # We controleren de zijwaartse scans (90 graden links en rechts)
+        left_distance = range_image[90]
+        right_distance = range_image[270]
+
+        # Drempelwaarde voor smalle doorgang (bijvoorbeeld 0.2 meter)
+        narrow_threshold = 0.2
+
+        if left_distance < narrow_threshold and right_distance < narrow_threshold:
+            return True #als beide zijden dicht zijn, is er waarschijnlijk een smalle doorgang
+        
+        return False
     
     def run(self):
         while self.robot.step(self.time_step) != -1:
@@ -188,6 +205,12 @@ class RobotController:
                         self.state = "MOVING"
                 
                 elif self.state == "MOVING":
+                    range_image = self.lidar.getRangeImage()
+                    self.left_distance = range_image[90]  # Rechts of links van de robot
+                    self.right_distance = range_image[270]  # andere kant van de robot
+                    print(f"Right distance: {self.right_distance}, Left distance: {self.left_distance}")
+
+
                     if not path_is_clear:
                         # STOP de robot als het pad niet vrij is
                         self.drive(0, 0)
@@ -196,9 +219,17 @@ class RobotController:
                         print(f"Node {target_name} is obstructed")
                         self.route = []  # Wis de huidige route zodat er een nieuwe route gepland wordt in de volgende iteratie
 
-                    elif distance > self.dist_error:
+                    elif distance > self.dist_error and not self.detect_narrow_corridor():
                         correction = angle_diff * 3.0
                         self.drive(4.0 - correction, 4.0 + correction)
+                        print("GPS correction")
+
+                    elif distance > self.dist_error:
+                        print("Lidar correction")
+                        error = self.left_distance - self.right_distance
+                        correction = error * 3.0 
+                        self.drive(self.max_speed + correction, self.max_speed - correction)
+
                     else:
                         print(f"Node {target_name} reached")
                         self.current_node = target_name 
