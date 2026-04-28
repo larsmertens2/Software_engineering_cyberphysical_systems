@@ -31,6 +31,7 @@ class RobotController:
         self.max_speed = 4 # Max is 6.28
         self.dist_error = 0.05 # Meters
         self.angle_error = 0.04 # Radians
+        self.obstacle_threshold = 0.3  # Afstand in meters
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -87,6 +88,25 @@ class RobotController:
         self.left_motor.setVelocity(left_speed)
         self.right_motor.setVelocity(right_speed)
 
+    def is_path_clear(self):
+        """Checkt of er een obstakel recht voor de robot staat."""
+        range_image = self.lidar.getRangeImage()
+        if not range_image:
+            return True
+
+        # De LDS-01 heeft 360 metingen. 
+        # Index 0 is meestal recht vooruit. We kijken in een hoek van 40 graden (-20 tot +20).
+        front_indices = list(range(0, 20)) + list(range(340, 360))
+        
+        front_indices = list(range(0, 30)) + list(range(330, 360))
+
+        for i in front_indices:
+            distance = range_image[i]
+            if 0 < distance < self.obstacle_threshold:
+                print(f"OBSTACLE DETECTED at index {i}, distance: {distance}")
+                return False # Obstakel gedetecteerd
+        return True
+    
     def run(self):
         while self.robot.step(self.time_step) != -1:
             # 1. CHECK: Zijn we op een eindbestemming?
@@ -149,6 +169,8 @@ class RobotController:
                 current_angle = self.get_direction()
                 angle_diff = (target_angle - current_angle + math.pi) % (2 * math.pi) - math.pi
 
+                path_is_clear = self.is_path_clear()
+
                 if self.state == "ROTATING":
                     if abs(angle_diff) > self.angle_error:
                         val = -0.8 if angle_diff > 0 else 0.8
@@ -157,7 +179,12 @@ class RobotController:
                         self.state = "MOVING"
                 
                 elif self.state == "MOVING":
-                    if distance > self.dist_error:
+                    if not path_is_clear:
+                        # STOP de robot als het pad niet vrij is
+                        print("OBSTACLE DETECTED: Waiting...")
+                        self.drive(0, 0)
+                        self.state = "IDLE"  # Terug naar idle
+                    elif distance > self.dist_error:
                         correction = angle_diff * 3.0
                         self.drive(4.0 - correction, 4.0 + correction)
                     else:
