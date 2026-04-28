@@ -13,6 +13,9 @@
 			<a href="/inventory">Inventory</a>
 			<a href="/map">Warehouse Map</a>
 		</nav>
+
+		<button class="emergency-button"> EMERGENCY STOP</button>
+
 	</aside>
 
 	<main class="content">
@@ -46,6 +49,16 @@
 		background: white;
 		border-right: 1px solid #ddd;
 		padding-top: 1rem;
+		
+		/* Nieuwe regels: */
+		display: flex;
+		flex-direction: column;
+		align-items: center; 
+		overflow: hidden;
+	}
+
+	.sidebar-nav {
+		width: 100%; 
 	}
 
 	.sidebar-nav a {
@@ -53,6 +66,7 @@
 		padding: 12px 20px;
 		color: #333;
 		text-decoration: none;
+		width: 100%;
 	}
 
 	.sidebar-nav a:hover {
@@ -63,5 +77,17 @@
 		flex: 1;
 		padding: 2rem;
 		overflow-y: auto;
+	}
+
+	.emergency-button {
+		background-color: red;
+		color: white;
+		font-weight: bold;
+		width: 80%; /* Iets breder oogt vaak mooier */
+		height: 60px; /* Een vaste hoogte is vaak cleaner dan een percentage */
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		margin: 20px 0; /* Ruimte boven en onder de knop */
 	}
 </style>
