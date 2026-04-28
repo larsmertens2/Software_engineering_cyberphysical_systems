@@ -65,11 +65,31 @@ DEF Bot_1 TurtleBot3Burger {
   translation -0.3 5.3 0
   rotation 0 0 1 1.5708
   name "Bot_1"
+  extensionSlot [
+    Compass {
+      name "Compass"
+    }
+    GPS {
+      name "GPS"
+    }
+    RobotisLds01 {
+    }
+  ]
 }
 DEF Bot_3 TurtleBot3Burger {
   translation 0.3 5.3 0
   rotation 0 0 1 1.5708
   name "Bot_3"
+  extensionSlot [
+    Compass {
+      name "Compass"
+    }
+    GPS {
+      name "GPS"
+    }
+    RobotisLds01 {
+    }
+  ]
 }
 DEF Aisle_2 Group {
   children [

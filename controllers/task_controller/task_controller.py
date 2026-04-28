@@ -1,11 +1,18 @@
 import requests
 
 class TaskManager:
-    def __init__(self):
+    def __init__(self, robot_name):
         self.base_url = "http://localhost:5000/api/queue"
-        self.robot_id = "bot_2" 
+        
+        self.robot_id = robot_name.lower()  # bijv. "bot_1"
+        dropoff_map = {
+            "bot_1": "Droppoff_1",
+            "bot_2": "Droppoff_2",
+            "bot_3": "Droppoff_3",
+        }
         # Zorg dat de spelling 'Droppoff_2' exact overeenkomt met je map.json!
-        self.dropoff_point = "Droppoff_2" 
+        self.dropoff_point = dropoff_map.get(self.robot_id, "Droppoff_2")
+        
 
         self.aisle_to_entrance = {
             1: "Entrance_1_3", 3: "Entrance_1_3",

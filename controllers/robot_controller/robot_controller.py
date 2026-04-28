@@ -25,6 +25,8 @@ class RobotController:
     def __init__(self):
         self.robot = Robot()
         self.time_step = int(self.robot.getBasicTimeStep())
+        robot_name = self.robot.getName()  # Geeft "Bot_1", "Bot_2", of "Bot_3"
+        self.taskmanager = TaskManager(robot_name)
 
         # Settings:
         #TODO: optimize these settings
@@ -63,7 +65,7 @@ class RobotController:
         self.obstructed_nodes = [] # List van nodes die momenteel geblokkeerd zijn (om later te gebruiken in de routeplanning)
 
         #initialising Taskmanager
-        self.taskmanager = TaskManager()
+        self.taskmanager = TaskManager(robot_name)
         self.current_tasks_list = self.taskmanager.get_task_list(4)      # De lijst met taken die we van de manager krijgen
         self.final_destination = None   # De dropoff van de huidige taak
         self.current_task = None
@@ -208,8 +210,6 @@ class RobotController:
                     range_image = self.lidar.getRangeImage()
                     self.left_distance = range_image[90]  # Rechts of links van de robot
                     self.right_distance = range_image[270]  # andere kant van de robot
-                    print(f"Right distance: {self.right_distance}, Left distance: {self.left_distance}")
-
 
                     if not path_is_clear:
                         # STOP de robot als het pad niet vrij is
@@ -222,10 +222,10 @@ class RobotController:
                     elif distance > self.dist_error and not self.detect_narrow_corridor():
                         correction = angle_diff * 3.0
                         self.drive(4.0 - correction, 4.0 + correction)
-                        print("GPS correction")
+                        # print("GPS correction")
 
                     elif distance > self.dist_error:
-                        print("Lidar correction")
+                        # print("Lidar correction")
                         error = self.left_distance - self.right_distance
                         correction = error * 3.0 
                         self.drive(self.max_speed + correction, self.max_speed - correction)
