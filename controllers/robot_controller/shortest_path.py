@@ -13,7 +13,7 @@ from collections import deque
 # or to prefer keep moving allong the "highway" in the middle of the warehouse. Or add driving rules (stay right etc...)
 # These are optimalizations for later #TODO
 
-def shortest_path(nodes, edges, start_node, end_node):
+def shortest_path(nodes, obstructed_nodes, edges, start_node, end_node):
     adj = { node: [] for node in nodes }
     for u, v in edges:
         adj[u].append(v)
@@ -30,7 +30,7 @@ def shortest_path(nodes, edges, start_node, end_node):
             return path
 
         for neighbor in adj[current]:
-            if neighbor not in visited:
+            if neighbor not in visited and neighbor not in obstructed_nodes:
                 visited.add(neighbor)
                 new_path = list(path)
                 new_path.append(neighbor)

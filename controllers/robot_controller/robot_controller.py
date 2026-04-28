@@ -25,12 +25,15 @@ class RobotController:
     def __init__(self):
         self.robot = Robot()
         self.time_step = int(self.robot.getBasicTimeStep())
+        robot_name = self.robot.getName()  # Geeft "Bot_1", "Bot_2", of "Bot_3"
+        self.taskmanager = TaskManager(robot_name)
 
         # Settings:
         #TODO: optimize these settings
         self.max_speed = 4 # Max is 6.28
         self.dist_error = 0.05 # Meters
         self.angle_error = 0.04 # Radians
+        self.obstacle_threshold = 0.1  # Afstand in meters
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -45,6 +48,10 @@ class RobotController:
 
         self.compass = self.robot.getDevice("compass")
         self.compass.enable(self.time_step)
+        
+        self.lidar = self.robot.getDevice('LDS-01')
+        self.lidar.enable(self.time_step)
+        self.lidar.enablePointCloud() 
 
         # States:
         # Possible states: ROTATING, MOVING, IDLE, ... #TODO with more advanced steps later in the project (collision preventiopn etc...)
@@ -55,9 +62,10 @@ class RobotController:
         self.current_node = "Droppoff_2"
         self.target_node_index = 0
         self.route = []
+        self.obstructed_nodes = [] # List van nodes die momenteel geblokkeerd zijn (om later te gebruiken in de routeplanning)
 
         #initialising Taskmanager
-        self.taskmanager = TaskManager()
+        self.taskmanager = TaskManager(robot_name)
         self.current_tasks_list = self.taskmanager.get_task_list(4)      # De lijst met taken die we van de manager krijgen
         self.final_destination = None   # De dropoff van de huidige taak
         self.current_task = None
@@ -75,14 +83,55 @@ class RobotController:
         radians = math.atan2(direction[0], direction[1])
         return radians
 
-    def get_route(self, end_node):
-        self.route = shortest_path(self.nodes, self.edges, self.current_node, end_node)
+    def get_route(self, obstructed_nodes, end_node):
+        self.route = shortest_path(self.nodes, obstructed_nodes, self.edges, self.current_node, end_node)
         print(f"Path: {self.route}")
 
     def drive(self, left_speed, right_speed):
         self.left_motor.setVelocity(left_speed)
         self.right_motor.setVelocity(right_speed)
 
+    def is_path_clear(self):
+        range_image = self.lidar.getRangeImage()
+        if not range_image: 
+            return True
+
+        # Instellingen voor de scan
+        vooruit_index = 180  # Lidar sensor staat achterstevoren
+        kijkhoek = 40        # Hoeveel graden we in scannen (20 links, 20 rechts)
+        
+        # We berekenen de indices die we willen controleren 160-200 graden
+        start_index = vooruit_index - (kijkhoek // 2)
+        eind_index = vooruit_index + (kijkhoek // 2)
+        
+        for i in range(start_index, eind_index):
+            # Gebruik gehele getallen om binnen de lijst-index te blijven
+            index = i % 360
+            distance = range_image[index]
+            
+            # Check of er iets binnen de drempelwaarde is
+            if distance < self.obstacle_threshold:
+                return False
+                
+        return True
+
+    def detect_narrow_corridor(self):
+        range_image = self.lidar.getRangeImage()
+        if not range_image: 
+            return False
+
+        # We controleren de zijwaartse scans (90 graden links en rechts)
+        left_distance = range_image[90]
+        right_distance = range_image[270]
+
+        # Drempelwaarde voor smalle doorgang (bijvoorbeeld 0.2 meter)
+        narrow_threshold = 0.2
+
+        if left_distance < narrow_threshold and right_distance < narrow_threshold:
+            return True #als beide zijden dicht zijn, is er waarschijnlijk een smalle doorgang
+        
+        return False
+    
     def run(self):
         while self.robot.step(self.time_step) != -1:
             # 1. CHECK: Zijn we op een eindbestemming?
@@ -103,6 +152,9 @@ class RobotController:
                         # 2. Meld de taak af bij de database
                         self.taskmanager.complete_task(current_task_id)
                         
+                        # Reset de lijst van geblokkeerde nodes bij het voltooien van een taak
+                        self.obstructed_nodes = []
+
                         # 3. Reset voor de volgende taak
                         self.ReachedPackage = False
                         self.current_tasks_list.pop(0)
@@ -123,7 +175,7 @@ class RobotController:
                 
                 if self.current_task is not None:
                     doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
-                    self.get_route(doel)
+                    self.get_route(self.obstructed_nodes, doel)
                     self.target_node_index = 0
                     self.state = "ROTATING"
                 else:
@@ -145,6 +197,8 @@ class RobotController:
                 current_angle = self.get_direction()
                 angle_diff = (target_angle - current_angle + math.pi) % (2 * math.pi) - math.pi
 
+                path_is_clear = self.is_path_clear()
+
                 if self.state == "ROTATING":
                     if abs(angle_diff) > self.angle_error:
                         val = -0.8 if angle_diff > 0 else 0.8
@@ -153,9 +207,29 @@ class RobotController:
                         self.state = "MOVING"
                 
                 elif self.state == "MOVING":
-                    if distance > self.dist_error:
+                    range_image = self.lidar.getRangeImage()
+                    self.left_distance = range_image[90]  # Rechts of links van de robot
+                    self.right_distance = range_image[270]  # andere kant van de robot
+
+                    if not path_is_clear:
+                        # STOP de robot als het pad niet vrij is
+                        self.drive(0, 0)
+                        self.state = "IDLE"  # Terug naar idle
+                        self.obstructed_nodes.append(target_name)  # Voeg deze node toe aan de lijst van geblokkeerde nodes
+                        print(f"Node {target_name} is obstructed")
+                        self.route = []  # Wis de huidige route zodat er een nieuwe route gepland wordt in de volgende iteratie
+
+                    elif distance > self.dist_error and not self.detect_narrow_corridor():
                         correction = angle_diff * 3.0
                         self.drive(4.0 - correction, 4.0 + correction)
+                        # print("GPS correction")
+
+                    elif distance > self.dist_error:
+                        # print("Lidar correction")
+                        error = self.left_distance - self.right_distance
+                        correction = error * 3.0 
+                        self.drive(self.max_speed + correction, self.max_speed - correction)
+
                     else:
                         print(f"Node {target_name} reached")
                         self.current_node = target_name 
