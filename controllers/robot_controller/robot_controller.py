@@ -45,6 +45,10 @@ class RobotController:
 
         self.compass = self.robot.getDevice("compass")
         self.compass.enable(self.time_step)
+        
+        self.lidar = self.robot.getDevice('LDS-01')
+        self.lidar.enable(self.time_step)
+        self.lidar.enablePointCloud() 
 
         # States:
         # Possible states: ROTATING, MOVING, IDLE, ... #TODO with more advanced steps later in the project (collision preventiopn etc...)
