@@ -25,6 +25,8 @@ class RobotController:
     def __init__(self):
         self.robot = Robot()
         self.time_step = int(self.robot.getBasicTimeStep())
+        self.robot_name = self.robot.getName() 
+        self.taskmanager = TaskManager(self.robot_name)
 
         # Settings:
         #TODO: optimize these settings
@@ -32,6 +34,7 @@ class RobotController:
         self.dist_error = 0.05 # Meters
         self.angle_error = 0.04 # Radians
         self.obstacle_threshold = 0.2  # Afstand in meters
+        self.view_angle = 90 # Graden om te scannen /2 links, /2 rechts
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -57,13 +60,18 @@ class RobotController:
 
         # Map:
         self.load_map()
-        self.current_node = "Droppoff_2"
+        dropoff_map = {
+        "Bot_1": "Droppoff_1",
+        "Bot_2": "Droppoff_2",
+        "Bot_3": "Droppoff_3",
+        }  
+        self.current_node = dropoff_map.get(self.robot_name, "Droppoff_2")
         self.target_node_index = 0
         self.route = []
         self.obstructed_nodes = [] # List van nodes die momenteel geblokkeerd zijn (om later te gebruiken in de routeplanning)
 
         #initialising Taskmanager
-        self.taskmanager = TaskManager()
+        self.taskmanager = TaskManager(self.robot_name)
         self.current_tasks_list = self.taskmanager.get_task_list(4)      # De lijst met taken die we van de manager krijgen
         self.final_destination = None   # De dropoff van de huidige taak
         self.current_task = None
@@ -96,7 +104,7 @@ class RobotController:
 
         # Instellingen voor de scan
         vooruit_index = 180  # Lidar sensor staat achterstevoren
-        kijkhoek = 40        # Hoeveel graden we in scannen (20 links, 20 rechts)
+        kijkhoek = self.view_angle        # Hoeveel graden we in scannen (20 links, 20 rechts)
         
         # We berekenen de indices die we willen controleren 160-200 graden
         start_index = vooruit_index - (kijkhoek // 2)
