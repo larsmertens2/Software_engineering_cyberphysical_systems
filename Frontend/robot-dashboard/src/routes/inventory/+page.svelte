@@ -1,21 +1,50 @@
 <script>
+    import { io } from 'socket.io-client';
+    import { onMount } from 'svelte';
+
     let { data } = $props(); 
+
+    // 1. Move the data into local state so we can update it manually
+    let items = $state(data.items ?? []);
 
     let searchTerm = $state("");
 
-    // We leiden de inventory direct af van de data prop.
-    // Zodra 'data' update, update 'inventory' automatisch mee.
+    // Keep local state in sync if data prop changes from +page.js
+    $effect(() => {
+        items = data.items ?? [];
+    });
+
+    // 2. Setup WebSocket connection
+    onMount(() => {
+        const socket = io('http://localhost:5000');
+
+        socket.on('inventory_updated', () => {
+            console.log("Inventory change detected, refreshing...");
+            refreshInventory();
+        });
+
+        return () => socket.disconnect();
+    });
+
+    // Function to fetch the latest inventory without a full page reload
+    async function refreshInventory() {
+		const res = await fetch('http://localhost:5000/api/items');
+		if (res.ok) {
+			// Hier updaten we de lokale state handmatig na het WebSocket signaal
+			items = await res.json();
+		}
+	}
+
     let inventory = $derived(
-        data.items?.map(item => ({
+        items.map(item => ({
             id: item.id.toString(),
             name: item.name,
             category: item.category,
             stock: item.stock,
             location: `Aisle ${item.aisle}`
-        })) ?? []
+        }))
     );
 
-    // De gefilterde lijst leiden we weer af van de inventory
     let filteredInventory = $derived(
         inventory.filter(item => 
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 

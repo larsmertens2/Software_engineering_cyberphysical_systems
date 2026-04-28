@@ -1,37 +1,61 @@
 <script>
+    import { io } from 'socket.io-client';
+    import { onMount } from 'svelte';
+
     let { data } = $props(); 
-    let showPopup = $state(false); // Houdt bij of de popup open is
-    let newItemId = $state("");    // Het ID voor het toegevogede item
+    let showPopup = $state(false);
+    let newItemId = $state(""); 
+
+    let rawQueueData = $state(data.items ?? []); 
+
+    $effect(() => {
+        rawQueueData = data.items ?? [];
+    });
+
+    onMount(() => {
+        const socket = io('http://localhost:5000');
+
+        socket.on('queue_updated', () => {
+            console.log("Queue update ontvangen...");
+            refreshQueue();
+        });
+
+        return () => socket.disconnect();
+    });
+
+    async function refreshQueue() {
+        const res = await fetch('http://localhost:5000/api/queue/status');
+        if (res.ok) {
+            rawQueueData = await res.json();
+        }
+    }
 
     let activeQueue = $derived(
-        data.items?.map(task => ({
+        rawQueueData.map(task => ({
             id: task.id,
             itemName: task.name,
             status: task.status,
             robotId: task.robot_id ?? "not assigned", 
             aisle: task.aisle
-        })) ?? []
+        }))
     );
 
     async function handleSubmit() {
-    if (!newItemId) return;
+        if (!newItemId) return;
 
-    // Stuur de data naar je Flask backend
-    const response = await fetch('http://localhost:5000/api/queue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ item_id: newItemId })
-    });
+        const response = await fetch('http://localhost:5000/api/queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: newItemId })
+        });
 
-    if (response.ok) {
-      showPopup = false; // Sluit de popup
-      newItemId = "";    // Reset het veld
-      // Optioneel: refresh je data hier
-    } else {
-      alert("Fout bij toevoegen van item.");
+        if (response.ok) {
+          showPopup = false;
+          newItemId = ""; 
+        } else {
+          alert("Error when adding item to queue");
+        }
     }
-  }
-
 </script>
 
 <div class="dashboard">
@@ -94,7 +118,6 @@
         </div>
     </section>
 </div>
-
 <style>
     /* ... Je bestaande CSS ... */
 

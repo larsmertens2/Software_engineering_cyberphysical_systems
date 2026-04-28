@@ -5,12 +5,12 @@ export async function load({ fetch }) {
     
     try {
         const response = await fetch(`${apiHost}/api/queue/status`);
-        if (!response.ok) throw new Error('Backend niet bereikbaar');
+        if (!response.ok) throw new Error('Backend not reachable');
         
         const items = await response.json();
         return { items };
     } catch (err) {
         console.error("Fetch fout:", err);
-        return { items: [], error: "Laden mislukt, probeer te refreshen." };
+        return { items: [], error: "loading failed, try refreshing" };
     }
 }
