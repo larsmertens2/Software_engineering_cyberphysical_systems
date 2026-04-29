@@ -87,8 +87,7 @@ class TaskManager:
 
     def reset_all_locks(self):
         try:
-            # Pas het IP adres aan naar jouw backend IP
-            url = f"http://{self.api_ip}:5000/api/queue/aisle/reset_all"
+            url = f"{self.base_url}/aisle/reset_all"
             response = requests.post(url)
             if response.status_code == 200:
                 print("Alle gelockte gangen zijn gereset in de API!")

@@ -21,11 +21,11 @@ Referenties:
 import math
 import os
 import sys
-from controller import Robot
 
 from sensors import get_direction, is_path_clear, detect_narrow_corridor, get_side_distances
 from motion import drive
 from navigation import load_map, get_route
+from hardware_abstraction_layer import create_robot_hal
 
 parent_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(parent_dir)
@@ -34,9 +34,10 @@ from task_controller.task_controller import TaskManager
 
 class RobotController:
     def __init__(self):
-        self.robot = Robot()
-        self.time_step = int(self.robot.getBasicTimeStep())
-        self.robot_name = self.robot.getName()
+        # Enkel de HAL gebruiken!
+        self.hal = create_robot_hal()
+        self.time_step = self.hal.get_time_step()
+        self.robot_name = self.hal.get_name()
 
         self.taskmanager = TaskManager(self.robot_name)
         self.taskmanager.reset_all_locks()
@@ -53,19 +54,19 @@ class RobotController:
         self.aisle_slow_factor = 1.5   # Snelheidsreductie bij object nabij (in gang)
 
         # Motoren
-        self.left_motor = self.robot.getDevice("left wheel motor")
+        self.left_motor = self.hal.left_motor
         self.left_motor.setPosition(float('inf'))
         self.left_motor.setVelocity(0)
-        self.right_motor = self.robot.getDevice("right wheel motor")
+        self.right_motor = self.hal.right_motor
         self.right_motor.setPosition(float('inf'))
         self.right_motor.setVelocity(0)
 
         # Sensoren
-        self.gps = self.robot.getDevice("GPS")
+        self.gps = self.hal.gps
         self.gps.enable(self.time_step)
-        self.compass = self.robot.getDevice("compass")
+        self.compass = self.hal.compass
         self.compass.enable(self.time_step)
-        self.lidar = self.robot.getDevice('LDS-01')
+        self.lidar = self.hal.lidar
         self.lidar.enable(self.time_step)
         self.lidar.enablePointCloud()
 
@@ -108,7 +109,7 @@ class RobotController:
             self.state = new_state
 
     def run(self):
-        while self.robot.step(self.time_step) != -1:
+        while self.hal.step(self.time_step) != -1:
             self._state_handlers[self.state]()
 
     # -------------------------------------------------------------------------
@@ -131,7 +132,7 @@ class RobotController:
 
         if not self.route:
             print(f"{self.robot_name}: Geen route naar {doel}! Wachten 30s...")
-            self.wait_until = self.robot.getTime() + 30.0
+            self.wait_until = self.hal.get_time() + 30.0
             self._transition("WAITING")
         else:
             self.target_node_index = 0
@@ -139,7 +140,7 @@ class RobotController:
 
     def _state_waiting(self):
         """Wacht tot de timer verstreken is. Overgang naar IDLE."""
-        if self.robot.getTime() >= self.wait_until:
+        if self.hal.get_time() >= self.wait_until:
             print(f"{self.robot_name}: Klaar met wachten, opnieuw plannen...")
             self._transition("IDLE")
         else:
@@ -150,7 +151,7 @@ class RobotController:
 
         Overgang naar MOVING_AISLE als target een gang is, anders naar MOVING.
         """
-        position = self.gps.getValues()
+        position = self.gps.get_position()
         if math.isnan(position[0]):
             return
 
@@ -188,7 +189,7 @@ class RobotController:
         target_name = self.route[self.target_node_index]
         target_pos = self.nodes[target_name]
 
-        position = self.gps.getValues()
+        position = self.gps.get_position()
         if math.isnan(position[0]):
             return
 
@@ -221,7 +222,7 @@ class RobotController:
 
     def _try_lock_aisle(self, aisle_name):
         """Probeer een gang te vergrendelen. Geeft False terug als we (nog) moeten wachten."""
-        current_time = self.robot.getTime()
+        current_time = self.hal.get_time()
         if current_time < self.wait_until:
             self._drive(0, 0)
             return False
@@ -299,8 +300,8 @@ class RobotController:
         return math.sqrt(dx**2 + dy**2)
 
     def _drive(self, left_speed, right_speed, slow_factor=3):
-        drive(self.left_motor, self.right_motor, left_speed, right_speed,
-              self.lidar, self.nearby_threshold, slow_factor)
+        drive(self.hal.left_motor, self.hal.right_motor, left_speed, right_speed,
+              self.hal.lidar, self.nearby_threshold, slow_factor)
 
 
 if __name__ == "__main__":
