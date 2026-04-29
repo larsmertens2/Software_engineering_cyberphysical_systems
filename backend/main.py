@@ -11,9 +11,6 @@ app = Flask(__name__)
 CORS(app) 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-locked_nodes = {}
-locked_aisles = {}
-
 # Wordt bijgehouden door aisle devices (via POST /api/aisle/state)
 # { "Aisle_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
 aisle_states = {}
