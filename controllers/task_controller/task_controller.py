@@ -28,6 +28,7 @@ class TaskManager:
             
             if response.status_code == 200:
                 api_tasks = response.json()
+                print(f"!!! [{self.robot_id}] ONTVANGT VAN API: {api_tasks}")
                 
                 if not api_tasks:
                     return []

@@ -137,6 +137,10 @@ class RobotController:
                 self.current_tasks_list = self.taskmanager.get_task_list(1)
                 if not self.current_tasks_list:
                     self.wait_until = self.hal.get_time() + 2.0  # 2s wachten voor volgende poging
+                    self.route = []           
+                    self.current_task = None  
+                    self._drive(0, 0)        
+                    return                    
                 return  # Nog geen taak beschikbaar
 
         doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
