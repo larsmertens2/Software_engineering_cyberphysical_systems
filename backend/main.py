@@ -11,9 +11,6 @@ app = Flask(__name__)
 CORS(app) 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-locked_nodes = {}
-locked_aisles = {}
-
 # Wordt bijgehouden door aisle devices (via POST /api/aisle/state)
 # { "Aisle_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
 aisle_states = {}
@@ -182,103 +179,6 @@ def complete_task():
         cursor.close()
         conn.close()
 
-@app.route('/api/queue/aisle/lock', methods=['POST'])
-def lock_aisle():
-    data = request.json
-    robot_id = data.get("robot_id")
-    target_node = data.get("aisle")  # Bijv. 'Aisle_2' of 'Aisle_2_A'
-    
-    # We pakken de basisnaam van de gang (zodat we de HELE gang locken)
-    # "Aisle_2_A" wordt "Aisle_2". "Aisle_3" blijft gewoon "Aisle_3".
-    parts = target_node.split('_')
-    if len(parts) >= 2:
-        base_aisle = f"{parts[0]}_{parts[1]}"
-    else:
-        base_aisle = target_node
-
-    # 1. Check of de gang AL bezet is
-    if base_aisle in locked_aisles:
-        # Is hij bezet door DEZE robot? -> Laat hem door! (Hij verplaatst zich binnen de gang)
-        if locked_aisles[base_aisle] == robot_id:
-            print(f"[API] Status: {robot_id} navigeert verder binnen {base_aisle}.")
-            return jsonify({"success": True})
-            
-        # Is hij bezet door een ANDERE robot? -> Tegenhouden!
-        else:
-            print(f"[API] Status: GEWEIGERD! {robot_id} wil in {base_aisle}, maar deze is GELOCKED door {locked_aisles[base_aisle]}.")
-            return jsonify({"success": False})
-
-    # 2. De gang is vrij! We geven deze robot toegang.
-    locked_aisles[base_aisle] = robot_id
-    print(f"[API] Status: {base_aisle} is nu succesvol GELOCKED door {robot_id}!")
-    return jsonify({"success": True})
-
-@app.route('/api/queue/aisle/locked', methods=['GET'])
-def get_locked_aisles_status():
-    # Returnt de originele locked_aisles dictionary
-    return jsonify(locked_aisles)
-
-@app.route('/api/queue/aisle/unlock', methods=['POST'])
-def unlock_aisle():
-    data = request.json
-    robot_id = data.get('robot_id')
-    
-    unlocked_list = []
-    # Zoek alle gangen die door deze robot bezet zijn en geef ze vrij
-    # We gebruiken list(locked_aisles.items()) om de dictionary veilig aan te passen tijdens de loop
-    for aisle, bot in list(locked_aisles.items()):
-        if bot == robot_id:
-            del locked_aisles[aisle]
-            unlocked_list.append(aisle)
-            print(f"[API] {aisle} is VRIJGEGEVEN door {robot_id}")
-            
-    return jsonify({"success": True, "unlocked": unlocked_list}), 200
-
-# Nieuwe dictionary voor individuele vakjes
-locked_nodes = {} # Formaat: {"Node_Naam": "Robot_ID"}
-
-@app.route('/api/nodes/lock', methods=['POST'])
-def lock_node():
-    data = request.json
-    robot_id = data.get("robot_id")
-    node = data.get("node")
-    
-    if node in locked_nodes:
-        if locked_nodes[node] == robot_id:
-            return jsonify({"success": True}) # Al gelocked door DEZE robot
-        else:
-            return jsonify({"success": False}) # Bezet door een ANDERE robot
-
-    # Node is vrij, lock hem voor deze robot
-    locked_nodes[node] = robot_id
-    print(f"[API] Vakje {node} is GELOCKED door {robot_id}")
-    return jsonify({"success": True})
-
-@app.route('/api/nodes/unlock', methods=['POST'])
-def unlock_node():
-    data = request.json
-    robot_id = data.get('robot_id')
-    node = data.get('node')
-    
-    if locked_nodes.get(node) == robot_id:
-        del locked_nodes[node]
-        print(f"[API] Vakje {node} is VRIJGEGEVEN door {robot_id}")
-        return jsonify({"success": True})
-    return jsonify({"success": False})
-
-@app.route('/api/nodes/locked', methods=['GET'])
-def get_locked_nodes():
-    # Returnt alle momenteel bezette vakjes
-    return jsonify(locked_nodes)
-
-@app.route('/api/queue/aisle/reset_all', methods=['POST', 'GET'])
-def reset_all_aisles():
-    locked_aisles.clear()
-    aisle_states.clear()
-    print("[API] Alle gangen zijn geforceerd vrijgegeven (RESET)!")
-    socketio.emit('aisle_updated', aisle_states)
-    return jsonify({"success": True, "message": "Alle locks verwijderd"})
-
 @app.route('/api/queue/status', methods=['GET'])
 def get_queue_status():
     conn = get_db_connection()
@@ -309,25 +209,6 @@ def get_map():
             return jsonify(json.load(file_handle))
     except Exception as error:
         return jsonify({"error": str(error)}), 500
-
-@app.route('/api/aisle/state', methods=['POST'])
-def update_aisle_state():
-    data = request.json
-    aisle = data.get('aisle_id')
-    if not aisle:
-        return jsonify({"error": "aisle_id is mandatory"}), 400
-
-    aisle_states[aisle] = {
-        "locker": data.get("locker"),
-        "waiting": data.get("waiting", []),
-    }
-    print(f"[AISLE] {aisle}: locker={aisle_states[aisle]['locker']}, waiting={aisle_states[aisle]['waiting']}")
-    socketio.emit('aisle_updated', aisle_states)
-    return jsonify({"ok": True})
-
-@app.route('/api/aisle/states', methods=['GET'])
-def get_aisle_states():
-    return jsonify(aisle_states)
 
 # Emergency stop endpoints
 @app.route('/api/emergency', methods=['GET'])

@@ -34,7 +34,7 @@ from controllers.robot_hal import create_robot_hal
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 parent_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(parent_dir)
-from task_controller.task_controller import TaskManager
+from controllers.task_manager.task_manager import TaskManager
 
 
 class RobotController:

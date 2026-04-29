@@ -15,10 +15,8 @@ class TaskManager:
         self.dropoff_point = dropoff_map.get(robot_id) 
         
         self.aisle_to_entrance = {
-            1: "Aisle_2_2", 3: "Aisle_2_2",
-            2: "Aisle_1_2", 4: "Aisle_1_2",
-            5: "Aisle_3_2", 7: "Aisle_3_2",
-            6: "Aisle_4_2", 8: "Aisle_4_2"
+            1: "Aisle_1_2", 2: "Aisle_2_2",
+            3: "Aisle_3_2", 4: "Aisle_4_2",
         }
 
     def get_task_list(self, size):
