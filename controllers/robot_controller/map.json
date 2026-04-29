@@ -33,6 +33,9 @@
         "Ailse_4_2": {"x": 2, "y": 6.45}
     },
     "edges": [
+        ["Droppoff_1", "Droppoff_2"],
+        ["Droppoff_2", "Droppoff_3"],
+
         ["Droppoff_1", "A1"],
         ["Droppoff_2", "A1"],
         ["Droppoff_2", "A2"],
