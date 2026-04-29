@@ -219,6 +219,16 @@ class RobotController:
     # Hulpmethoden (geen state-logica)
     # -------------------------------------------------------------------------
 
+    def _request_lock_aisle(self, aisle_id, current_node):
+        msg = json.dumps({
+            "type": "REQUEST_ENTRY",
+            "robot_id": self.robot_name,
+            "aisle": aisle_id,
+            "node": current_node
+        })
+        self.emitter.send(msg.encode())
+        seld.aisle_response = None
+
     def _try_lock_aisle(self, aisle_name):
         """Probeer een gang te vergrendelen. Geeft False terug als we (nog) moeten wachten."""
         current_time = self.robot.getTime()
