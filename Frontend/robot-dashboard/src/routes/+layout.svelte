@@ -1,5 +1,49 @@
 <script>
 	let { children } = $props();
+	let emergencyActive = $state(false);
+
+	async function toggleEmergency() {
+		try {
+			const response = await fetch('http://localhost:5000/api/emergency', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				emergencyActive = data.emergency_active;
+				console.log('Emergency status:', data);
+			} else {
+				console.error('Failed to toggle emergency');
+			}
+		} catch (error) {
+			console.error('Error calling emergency endpoint:', error);
+		}
+	}
+
+	// Check emergency status on mount
+	async function checkEmergencyStatus() {
+		try {
+			const response = await fetch('http://localhost:5000/api/emergency', {
+				method: 'GET'
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				emergencyActive = data.emergency_active;
+			}
+		} catch (error) {
+			console.error('Error checking emergency status:', error);
+		}
+	}
+
+	$effect(() => {
+		checkEmergencyStatus();
+		const interval = setInterval(checkEmergencyStatus, 1000); // Poll elke seconde
+		return () => clearInterval(interval);
+	});
 </script>
 
 <header class="top-header">
@@ -14,7 +58,13 @@
 			<a href="/map">Warehouse Map</a>
 		</nav>
 
-		<button class="emergency-button"> EMERGENCY STOP</button>
+		<button 
+		class="emergency-button"
+		class:active={emergencyActive}
+		onclick={toggleEmergency}
+	>
+		{emergencyActive ? 'EMERGENCY ACTIVE' : 'EMERGENCY STOP'}
+	</button>
 
 	</aside>
 
@@ -83,11 +133,25 @@
 		background-color: red;
 		color: white;
 		font-weight: bold;
-		width: 80%; /* Iets breder oogt vaak mooier */
-		height: 60px; /* Een vaste hoogte is vaak cleaner dan een percentage */
+		width: 80%;
+		height: 60px;
 		border: none;
 		border-radius: 8px;
 		cursor: pointer;
-		margin: 20px 0; /* Ruimte boven en onder de knop */
+		margin: 20px 0;
+		font-size: 14px;
+		transition: background-color 0.3s ease;
+	}
+
+	.emergency-button:hover {
+		background-color: darkred;
+	}
+
+	.emergency-button.active {
+		background-color: green;
+	}
+
+	.emergency-button.active:hover {
+		background-color: darkgreen;
 	}
 </style>

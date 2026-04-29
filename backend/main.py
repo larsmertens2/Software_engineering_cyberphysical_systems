@@ -18,6 +18,9 @@ locked_aisles = {}
 # { "Aisle_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
 aisle_states = {}
 
+# Emergency stop state
+emergency_active = False
+
 def resolve_map_file_path():
     candidates = [
         os.path.join(os.path.dirname(__file__), "..", "controllers", "robot_controller", "map.json"),
@@ -325,6 +328,34 @@ def update_aisle_state():
 @app.route('/api/aisle/states', methods=['GET'])
 def get_aisle_states():
     return jsonify(aisle_states)
+
+# Emergency stop endpoints
+@app.route('/api/emergency', methods=['GET'])
+def get_emergency_status():
+    """Get the current emergency status"""
+    global emergency_active
+    return jsonify({
+        "emergency_active": emergency_active
+    }), 200
+
+@app.route('/api/emergency', methods=['POST'])
+def toggle_emergency():
+    """Toggle emergency state"""
+    global emergency_active
+    emergency_active = not emergency_active
+    
+    print(f"[EMERGENCY] Emergency status toggled to: {emergency_active}")
+    
+    # Broadcast to all connected clients
+    socketio.emit('emergency_updated', {
+        'emergency_active': emergency_active,
+        'timestamp': time.time()
+    })
+    
+    return jsonify({
+        "emergency_active": emergency_active,
+        "message": "EMERGENCY ACTIVATED" if emergency_active else "Emergency cleared"
+    }), 200
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True,  allow_unsafe_werkzeug=True)

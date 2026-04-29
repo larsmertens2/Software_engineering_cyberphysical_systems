@@ -22,6 +22,9 @@ import json
 import math
 import os
 import sys
+import urllib.request
+import urllib.error
+import time
 
 from sensors import get_direction, is_path_clear, detect_narrow_corridor, get_side_distances
 from motion import drive
@@ -107,6 +110,11 @@ class RobotController:
             "WAITING_AISLE": self._state_waiting_aisle,
         }
 
+        # Emergency stop state
+        self.emergency_active = False
+        self.last_emergency_check = 0
+        self.emergency_check_interval = 0.5  # Check elke 0.5 seconden
+
     # -------------------------------------------------------------------------
     # Hoofdlus
     # -------------------------------------------------------------------------
@@ -118,6 +126,15 @@ class RobotController:
 
     def run(self):
         while self.hal.step(self.time_step) != -1:
+            # Check emergency status
+            self._check_emergency_status()
+            
+            # If emergency is active, stop motors immediately
+            if self.emergency_active:
+                self._drive(0, 0)
+                print(f"{self.robot_name}: EMERGENCY ACTIVE - MOTORS STOPPED")
+                continue
+            
             self._poll_receiver()
             self._state_handlers[self.state]()
 
@@ -249,6 +266,34 @@ class RobotController:
     # -------------------------------------------------------------------------
     # Hulpmethoden (geen state-logica)
     # -------------------------------------------------------------------------
+
+    def _check_emergency_status(self):
+        """Poll de backend om de emergency status te controleren."""
+        current_time = time.time()
+        
+        # Throttle: check elke N seconden
+        if current_time - self.last_emergency_check < self.emergency_check_interval:
+            return
+        
+        self.last_emergency_check = current_time
+        
+        try:
+            with urllib.request.urlopen(
+                'http://localhost:5000/api/emergency',
+                timeout=1
+            ) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode())
+                    self.emergency_active = data.get('emergency_active', False)
+                    
+                    # Log state changes
+                    if self.emergency_active:
+                        print(f"{self.robot_name}: EMERGENCY ACTIVATED!")
+        except urllib.error.URLError as e:
+            print(f"{self.robot_name}: Error checking emergency status: {e}")
+            # Bij Fehler, nicht stoppen - weiter fahren
+        except Exception as e:
+            print(f"{self.robot_name}: Unexpected error checking emergency: {e}")
 
     def _get_base_aisle(self, node_name):
         """Geeft de basis-aisle terug: 'Aisle_1_2' -> 'Aisle_1'."""
