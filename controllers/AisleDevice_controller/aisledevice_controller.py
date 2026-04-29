@@ -50,7 +50,6 @@ class AisleDeviceController:
         while self.hal.step(self.time_step) != -1:
             self._step_count += 1
 
-            # Heartbeat elke 500 stappen zodat je ziet dat het device draait
             if self._step_count % 500 == 0:
                 print(f"[{self.aisle_id}] alive | locker={self.locker} | queue={self.queue}")
 

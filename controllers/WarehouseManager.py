@@ -15,7 +15,6 @@ class WarehouseManager:
         self.robots = [] # lijst van alle bots
         self.pending_tasks = self.task_manager.get_task_list(10)
         
-        # Houdt bij welke gang door welke robot bezet is. Formaat: {"Aisle_1": "Bot_1"}
         self.locked_aisles = {} 
 
     def is_aisle_clear(self, aisle_name):

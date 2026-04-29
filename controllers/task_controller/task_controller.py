@@ -6,7 +6,6 @@ class TaskManager:
         self.robot_id = robot_id
         self.api_ip = "localhost"
 
-        # Zorg dat de spelling van de droppoff exact overeenkomt met je map.json!
         dropoff_map = {
         "Bot_1": "Droppoff_1",
         "Bot_2": "Droppoff_2",
@@ -28,7 +27,7 @@ class TaskManager:
             
             if response.status_code == 200:
                 api_tasks = response.json()
-                print(f"!!! [{self.robot_id}] ONTVANGT VAN API: {api_tasks}")
+                # print(f"!!! [{self.robot_id}] ONTVANGT VAN API: {api_tasks}")
                 
                 if not api_tasks:
                     return []
@@ -38,7 +37,6 @@ class TaskManager:
                     aisle_num = t.get('aisle')
                     pickup_node = self.aisle_to_entrance.get(aisle_num)
                     
-                    # CRUCIAAL: Voeg t.get('id') toe zodat de robot weet welke taak hij doet
                     formatted_tasks.append([pickup_node, self.dropoff_point, t.get('id')])
                 
                 return formatted_tasks
@@ -55,7 +53,6 @@ class TaskManager:
             return
             
         try:
-            # We sturen de task_id naar je Flask endpoint /api/queue/complete
             response = requests.post(f"{self.base_url}/complete", json={"task_id": task_id}, timeout=5)
             if response.status_code == 200:
                 print(f"Taak {task_id} succesvol afgemeld in database.")
@@ -67,16 +64,15 @@ class TaskManager:
     def lock_aisle(self, aisle_name):
         try:
             payload = {"robot_id": self.robot_id, "aisle": aisle_name}
-            request_url = f"{self.base_url}/aisle/lock" # We zetten de URL in een variabele
+            request_url = f"{self.base_url}/aisle/lock" 
             
-            print(f"[{self.robot_id}] POST naar: {request_url}") # Print de exacte URL!
+            print(f"[{self.robot_id}] POST naar: {request_url}") 
             
             response = requests.post(request_url, json=payload, timeout=5)
-            # ... de rest van je code ...
             if response.status_code == 200:
                 return response.json().get("success", False)
         except Exception as e:
-            print(f"[{self.robot_id}] CRASH bij bereiken API: {e}") # AANGEPAST
+            print(f"[{self.robot_id}] CRASH bij bereiken API: {e}")
         return False
 
     def unlock_aisle(self):
