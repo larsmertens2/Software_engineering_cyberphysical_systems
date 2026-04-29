@@ -37,8 +37,8 @@ class RobotController:
         self.max_speed = 4 # Max is 6.28
         self.dist_error = 0.05 # Meters
         self.angle_error = 0.04 # Radians
-        self.nearby_threshold = 1 # Meters, voor obstakel detectie
-        self.obstacle_threshold = 0.5  # Afstand in meters
+        self.nearby_threshold = 0.5 # Meters, voor obstakel detectie
+        self.obstacle_threshold = 0.2  # Afstand in meters
         self.view_angle = 30 # Graden om te scannen /2 links, /2 rechts
 
         # Motors
@@ -100,24 +100,48 @@ class RobotController:
         self.route = shortest_path(self.nodes, obstructed_nodes, self.edges, self.current_node, end_node)
         print(f"Path: {self.route}")
     
+    def object_nearby(self):
+        range_image = self.lidar.getRangeImage()
+        if not range_image: 
+            return False
+
+        vooruit_index = 180 
+        brede_view_angle = 120  # Breed! Ideaal om robots in de ooghoeken te spotten
+
+        start_index = vooruit_index - (brede_view_angle // 2)
+        eind_index = vooruit_index + (brede_view_angle // 2)
+        
+        for i in range(start_index, eind_index):
+            index = i % 360
+            distance = range_image[index]
+            
+            # Negeer metingen die "oneindig" of ongeldig zijn
+            if math.isinf(distance) or math.isnan(distance):
+                continue
+            
+            if distance < self.nearby_threshold:
+                return True 
+                
+        return False
+    
     def drive(self, left_speed, right_speed):
+        if self.object_nearby():
+            self.left_motor.setVelocity(left_speed/3)
+            self.right_motor.setVelocity(right_speed/3)
+        else: 
             self.left_motor.setVelocity(left_speed)
             self.right_motor.setVelocity(right_speed)
 
-    def is_path_clear(self): #de vierkant berekening met gemini
+    def is_path_clear(self):
         range_image = self.lidar.getRangeImage()
         if not range_image: 
             return True
 
         vooruit_index = 180 
-        # Je mag de hoek nu veilig heel breed zetten, bijv 90 of 120
-        self.view_angle = 90 
-        start_index = vooruit_index - (self.view_angle // 2)
-        eind_index = vooruit_index + (self.view_angle // 2)
-        
-        # De afmetingen van je "virtuele bumper"
-        max_vooruit = 0.5   # Hoe ver vooruit kijken we? (meters)
-        robot_breedte = 0.2 # Hoe breed is het pad dat vrij moet zijn? (meters)
+        smalle_view_angle = 30  # Smal! Zodat hij de muren in de gang negeert
+
+        start_index = vooruit_index - (smalle_view_angle // 2)
+        eind_index = vooruit_index + (smalle_view_angle // 2)
         
         for i in range(start_index, eind_index):
             index = i % 360
@@ -125,19 +149,10 @@ class RobotController:
             
             if math.isinf(distance) or math.isnan(distance):
                 continue
-                
-            # Bereken de hoek relatief tot de voorkant van de robot
-            # Index 180 is recht vooruit, dus (i - 180) is de afwijking in graden
-            hoek_graden = i - 180
-            hoek_radialen = math.radians(hoek_graden)
             
-            # Converteer poolcoördinaten (afstand, hoek) naar X/Y coördinaten
-            x_vooruit = distance * math.cos(hoek_radialen)
-            y_zijwaarts = distance * math.sin(hoek_radialen)
-            
-            # Check of het object ZOWEL dichtbij genoeg is, ALS recht voor ons ligt
-            if x_vooruit < max_vooruit and abs(y_zijwaarts) < (robot_breedte / 2):
-                return False # Obstakel in ons directe rijpad!
+            # Alleen stoppen als er écht iets recht voor onze neus staat
+            if distance < self.obstacle_threshold:
+                return False
                 
         return True
 
@@ -259,18 +274,27 @@ class RobotController:
 
                     # Check of het een Ailse is EN of we deze specifieke node niet al zélf gelockt hebben
                     if "Ailse" in target_name and self.current_locked_aisle is None: 
-                        lock_succes = self.taskmanager.lock_aisle(target_name)
+                        current_time = self.robot.getTime()
                         
-                        if not lock_succes:
-                            # Print dit één keer per seconde om te zien of hij wacht op de API
-                            if int(self.robot.getTime()) % 2 == 0:
-                                print(f"{self.robot_name} wacht geduldig tot {target_name} vrijkomt in de API...")
+                        # Mogen we al een nieuwe API request doen (tijd is voorbij wait_until)?
+                        if current_time >= self.wait_until:
+                            lock_succes = self.taskmanager.lock_aisle(target_name)
                             
+                            if not lock_succes:
+                                print(f"{self.robot_name}: Gang {target_name} is bezet. Ik wacht 10 seconden...")
+                                # Hergebruik van je bestaande variabele!
+                                self.wait_until = current_time + 10.0 
+                                self.drive(0, 0)
+                                continue
+                            else:
+                                self.current_locked_aisle = True  
+                                print(f"{self.robot_name} heeft de gang succesvol gelockt!")
+                                # Reset wait_until voor de netheid, al overschrijft de code hem toch indien nodig
+                                self.wait_until = 0.0 
+                        else:
+                            # We zitten nog in de 10-seconden wachttijd.
                             self.drive(0, 0)
                             continue
-                        else:
-                            self.current_locked_aisle = True  # We hebben de lock voor de hele gang!
-                            print(f"{self.robot_name} heeft de gang succesvol gelockt!")
 
                     if not path_is_clear:
                         self.drive(0, 0)
@@ -292,9 +316,17 @@ class RobotController:
                         # print("GPS correction")
 
                     elif distance > self.dist_error:
-                        # print("Lidar correction")
-                        error = self.left_distance - self.right_distance
-                        correction = error * 3.0 
+                        # Haal afstanden op
+                        l_dist = self.left_distance
+                        r_dist = self.right_distance
+                        
+                        # Voorkom wiskundige fouten (inf - inf = NaN)
+                        if math.isinf(l_dist) or math.isinf(r_dist):
+                            correction = 0.0
+                        else:
+                            error = l_dist - r_dist
+                            correction = error * 3.0 
+                            
                         self.drive(self.max_speed + correction, self.max_speed - correction)
 
                     else:
