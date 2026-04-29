@@ -10,6 +10,7 @@ app = Flask(__name__)
 CORS(app) 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+locked_nodes = {}
 locked_aisles = {}
 
 def resolve_map_file_path():
@@ -207,6 +208,11 @@ def lock_aisle():
     print(f"[API] Status: {base_aisle} is nu succesvol GELOCKED door {robot_id}!")
     return jsonify({"success": True})
 
+@app.route('/api/queue/aisle/locked', methods=['GET'])
+def get_locked_aisles_status():
+    # Returnt de originele locked_aisles dictionary
+    return jsonify(locked_aisles)
+
 @app.route('/api/queue/aisle/unlock', methods=['POST'])
 def unlock_aisle():
     data = request.json
@@ -222,6 +228,43 @@ def unlock_aisle():
             print(f"[API] {aisle} is VRIJGEGEVEN door {robot_id}")
             
     return jsonify({"success": True, "unlocked": unlocked_list}), 200
+
+# Nieuwe dictionary voor individuele vakjes
+locked_nodes = {} # Formaat: {"Node_Naam": "Robot_ID"}
+
+@app.route('/api/nodes/lock', methods=['POST'])
+def lock_node():
+    data = request.json
+    robot_id = data.get("robot_id")
+    node = data.get("node")
+    
+    if node in locked_nodes:
+        if locked_nodes[node] == robot_id:
+            return jsonify({"success": True}) # Al gelocked door DEZE robot
+        else:
+            return jsonify({"success": False}) # Bezet door een ANDERE robot
+
+    # Node is vrij, lock hem voor deze robot
+    locked_nodes[node] = robot_id
+    print(f"[API] Vakje {node} is GELOCKED door {robot_id}")
+    return jsonify({"success": True})
+
+@app.route('/api/nodes/unlock', methods=['POST'])
+def unlock_node():
+    data = request.json
+    robot_id = data.get('robot_id')
+    node = data.get('node')
+    
+    if locked_nodes.get(node) == robot_id:
+        del locked_nodes[node]
+        print(f"[API] Vakje {node} is VRIJGEGEVEN door {robot_id}")
+        return jsonify({"success": True})
+    return jsonify({"success": False})
+
+@app.route('/api/nodes/locked', methods=['GET'])
+def get_locked_nodes():
+    # Returnt alle momenteel bezette vakjes
+    return jsonify(locked_nodes)
 
 @app.route('/api/queue/aisle/reset_all', methods=['POST', 'GET'])
 def reset_all_aisles():
