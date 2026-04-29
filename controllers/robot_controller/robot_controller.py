@@ -18,6 +18,7 @@ Referenties:
 - Webots-ontwikkelingsdocumentatie: https://pockerman-py-cubeai.readthedocs.io/en/latest/Examples/Webots/webots_ctrl_dev_101.html
 """
 
+import json
 import math
 import os
 import sys
@@ -40,7 +41,6 @@ class RobotController:
         self.robot_name = self.hal.get_name()
 
         self.taskmanager = TaskManager(self.robot_name)
-        self.taskmanager.reset_all_locks()
 
         self.wait_until = 0.0
 
@@ -70,6 +70,12 @@ class RobotController:
         self.lidar.enable(self.time_step)
         self.lidar.enablePointCloud()
 
+        # Communicatie met aisle devices
+        self.emitter = self.robot.getDevice("Emitter")
+        self.receiver = self.robot.getDevice("Receiver")
+        self.receiver.enable(self.time_step)
+        self.aisle_response = None
+
         # Kaart & navigatie
         self.nodes, self.edges = load_map()
 
@@ -92,11 +98,12 @@ class RobotController:
         # FSM
         self.state = "IDLE"
         self._state_handlers = {
-            "IDLE":         self._state_idle,
-            "WAITING":      self._state_waiting,
-            "ROTATING":     self._state_rotating,
-            "MOVING":       self._state_moving,
-            "MOVING_AISLE": self._state_moving_aisle,
+            "IDLE":          self._state_idle,
+            "WAITING":       self._state_waiting,
+            "ROTATING":      self._state_rotating,
+            "MOVING":        self._state_moving,
+            "MOVING_AISLE":  self._state_moving_aisle,
+            "WAITING_AISLE": self._state_waiting_aisle,
         }
 
     # -------------------------------------------------------------------------
@@ -109,7 +116,8 @@ class RobotController:
             self.state = new_state
 
     def run(self):
-        while self.hal.step(self.time_step) != -1:
+        while self.robot.step(self.time_step) != -1:
+            self._poll_receiver()
             self._state_handlers[self.state]()
 
     # -------------------------------------------------------------------------
@@ -123,8 +131,12 @@ class RobotController:
                 self.current_task = self.current_tasks_list[0]
                 print(f"{self.robot_name}: Nieuwe taak: Pickup {self.current_task[0]}")
             else:
-                self.current_tasks_list = self.taskmanager.get_task_list(4)
-                return  # Nog geen taak beschikbaar, volgende tick opnieuw proberen
+                if self.robot.getTime() < self.wait_until:
+                    return  # Throttle: wacht voor opnieuw claimen
+                self.current_tasks_list = self.taskmanager.get_task_list(1)
+                if not self.current_tasks_list:
+                    self.wait_until = self.robot.getTime() + 2.0  # 2s wachten voor volgende poging
+                return  # Nog geen taak beschikbaar
 
         doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
         self.route = get_route(self.nodes, self.edges, self.current_node,
@@ -162,7 +174,16 @@ class RobotController:
             self._drive(val, -val)
         else:
             target_name = self.route[self.target_node_index]
-            self._transition("MOVING_AISLE" if "Ailse" in target_name else "MOVING")
+            if "Aisle" in target_name:
+                if "Aisle" not in self.current_node:
+                    # Verse aisle-entry: vraag toegang aan het device
+                    self._request_aisle_entry(target_name, self.current_node)
+                    self._transition("WAITING_AISLE")
+                else:
+                    # Al in de gang, geen nieuwe request nodig
+                    self._transition("MOVING_AISLE")
+            else:
+                self._transition("MOVING")
 
     def _state_moving(self):
         """Rij naar een gewoon waypoint. Object nabij -> snelheid / 3.
@@ -175,14 +196,18 @@ class RobotController:
         self._navigate_to_waypoint(slow_factor=self.normal_slow_factor)
 
     def _state_moving_aisle(self):
-        """Rij door een gang. Vergrendelt de gang en gebruikt mildere snelheidsreductie.
+        """Rij door een gang (toegang al verleend door aisle device). Mildere snelheidsreductie.
 
         Overgangen: zelfde als MOVING.
         """
-        target_name = self.route[self.target_node_index]
-        if not self._try_lock_aisle(target_name):
-            return
         self._navigate_to_waypoint(slow_factor=self.aisle_slow_factor)
+
+    def _state_waiting_aisle(self):
+        """Wacht op GRANTED van het aisle device. Rijdt niet."""
+        self._drive(0, 0)
+        if self.aisle_response == "ENTRY_GRANTED":
+            self.aisle_response = None
+            self._transition("MOVING_AISLE")
 
     def _navigate_to_waypoint(self, slow_factor):
         """Gedeelde rijlogica voor MOVING en MOVING_AISLE."""
@@ -220,21 +245,45 @@ class RobotController:
     # Hulpmethoden (geen state-logica)
     # -------------------------------------------------------------------------
 
-    def _try_lock_aisle(self, aisle_name):
-        """Probeer een gang te vergrendelen. Geeft False terug als we (nog) moeten wachten."""
-        current_time = self.hal.get_time()
-        if current_time < self.wait_until:
-            self._drive(0, 0)
-            return False
-        if not self.taskmanager.lock_aisle(aisle_name):
-            print(f"{self.robot_name}: Gang {aisle_name} is bezet, wachten 10s...")
-            self.wait_until = current_time + 10.0
-            self._drive(0, 0)
-            return False
-        self.current_locked_aisle = True
-        self.wait_until = 0.0
-        print(f"{self.robot_name}: Gang {aisle_name} gelockt!")
-        return True
+    def _get_base_aisle(self, node_name):
+        """Geeft de basis-aisle terug: 'Aisle_1_2' -> 'Aisle_1'."""
+        parts = node_name.split("_")
+        return "_".join(parts[:2])
+
+    def _request_aisle_entry(self, node_name, current_node):
+        base = self._get_base_aisle(node_name)
+        self.current_locked_aisle = base
+        self.aisle_response = None
+        msg = json.dumps({
+            "type": "REQUEST_ENTRY",
+            "robot_id": self.robot_name,
+            "aisle": base,
+            "node": current_node,
+        })
+        self.emitter.send(msg.encode())
+        print(f"{self.robot_name}: Toegang gevraagd aan {base}")
+
+    def _notify_aisle_exit(self):
+        """Stuur EXITED naar het aisle device en reset de lock state."""
+        if self.current_locked_aisle is None:
+            return
+        msg = json.dumps({
+            "type": "EXITING",
+            "robot_id": self.robot_name,
+            "aisle": self.current_locked_aisle,
+        })
+        self.emitter.send(msg.encode())
+        print(f"{self.robot_name}: Gang {self.current_locked_aisle} verlaten")
+        self.current_locked_aisle = None
+
+    def _poll_receiver(self):
+        """Verwerk inkomende berichten van aisle devices."""
+        while self.receiver.getQueueLength() > 0:
+            msg = json.loads(self.receiver.getString())
+            self.receiver.nextPacket()
+            if msg.get("to") == self.robot_name:
+                self.aisle_response = msg["type"]
+                print(f"{self.robot_name}: Aisle response: {msg['type']} voor {msg.get('aisle')}")
 
     def _handle_obstacle(self, target_name):
         """Reageer op een geblokkeerd pad: voeg node toe aan obstructed en herplan."""
@@ -242,9 +291,8 @@ class RobotController:
         self.obstructed_nodes.append(target_name)
         print(f"{self.robot_name}: Obstakel bij {target_name}! Terug naar {self.current_node}")
 
-        if self.current_locked_aisle is not None and "Ailse" not in target_name:
-            self.taskmanager.unlock_aisle()
-            self.current_locked_aisle = None
+        if self.current_locked_aisle is not None and "Aisle" not in target_name:
+            self._notify_aisle_exit()
 
         self.route = get_route(self.nodes, self.edges, self.current_node,
                                self.obstructed_nodes, self.current_node)
@@ -255,10 +303,8 @@ class RobotController:
         """Verwerk het bereiken van een waypoint en bepaal de volgende state."""
         print(f"{self.robot_name}: Node {target_name} bereikt")
 
-        if "Ailse" not in target_name and self.current_node and "Ailse" in self.current_node:
-            print(f"{self.robot_name}: Gang volledig verlaten, unlock sturen!")
-            self.taskmanager.unlock_aisle()
-            self.current_locked_aisle = None
+        if "Aisle" not in target_name and self.current_node and "Aisle" in self.current_node:
+            self._notify_aisle_exit()
 
         self.current_node = target_name
         self.target_node_index += 1

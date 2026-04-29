@@ -32,8 +32,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation -0.5746106569142613 0.5997103559846477 0.5569291533806865 2.0885505891993623
-  position 0.5382647914060623 6.6712276117201 19.144044483556094
+  orientation -0.398721280605675 0.42455771270357595 0.812878889488513 1.7146921543420481
+  position 0.28399387302646323 2.0404266853299426 6.711561058686717
 }
 RectangleArena {
   contactMaterial "floor_material"
@@ -51,6 +51,12 @@ DEF Bot_2 TurtleBot3Burger {
   name "Bot_2"
   controller "robot_controller"
   extensionSlot [
+    Receiver {
+      name "Receiver"
+    }
+    Emitter {
+      name "Emitter"
+    }
     Compass {
       name "Compass"
     }
@@ -67,6 +73,12 @@ DEF Bot_1 TurtleBot3Burger {
   name "Bot_1"
   controller "robot_controller"
   extensionSlot [
+    Emitter {
+      name "Emitter"
+    }
+    Receiver {
+      name "Receiver"
+    }
     Compass {
       name "Compass"
     }
@@ -83,6 +95,12 @@ DEF Bot_3 TurtleBot3Burger {
   name "Bot_3"
   controller "robot_controller"
   extensionSlot [
+    Emitter {
+      name "Emitter"
+    }
+    Receiver {
+      name "Receiver"
+    }
     Compass {
       name "Compass"
     }
@@ -289,6 +307,78 @@ DEF Aisle_7 Group {
       size 1 0.6 1
     }
   ]
+}
+DEF Aisle_1_3_Device Robot {
+  translation -0.6 8.05 0.5
+  children [
+    DEF Aisle_1_3_Receiver Receiver {
+    }
+    DEF Aisle_1_3_Emitter Emitter {
+    }
+    Shape {
+      appearance PBRAppearance {
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "Aisle_2"
+  controller "AisleDevice_controller"
+}
+DEF Aisle_5_7_Device Robot {
+  translation -0.6 6.45 0.6
+  children [
+    DEF Aisle_5_7_Receiver Receiver {
+    }
+    DEF Aisle_5_7_Emitter Emitter {
+    }
+    Shape {
+      appearance PBRAppearance {
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "Aisle_1"
+  controller "AisleDevice_controller"
+}
+DEF Aisle_2_4_Device Robot {
+  translation 0.6 8.05 0.6
+  children [
+    DEF Aisle_2_4_Receiver Receiver {
+    }
+    DEF Aisle_2_4_Emitter Emitter {
+    }
+    Shape {
+      appearance PBRAppearance {
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "Aisle_3"
+  controller "AisleDevice_controller"
+}
+DEF Aisle_6_8_Device Robot {
+  translation 0.6 6.45 0.7
+  children [
+    DEF Aisle_6_8_Receiver Receiver {
+    }
+    DEF Aisle_6_8_Emitter Emitter {
+    }
+    Shape {
+      appearance PBRAppearance {
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "Aisle_4"
+  controller "AisleDevice_controller"
 }
 DEF Dropoff Solid {
   translation 0 4.7 0

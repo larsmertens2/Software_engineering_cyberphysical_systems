@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import mysql.connector
@@ -12,6 +13,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 locked_nodes = {}
 locked_aisles = {}
+_claim_lock = threading.Lock()
+
+# Wordt bijgehouden door aisle devices (via POST /api/aisle/state)
+# { "Aisle_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
+aisle_states = {}
 
 def resolve_map_file_path():
     candidates = [
@@ -72,12 +78,11 @@ def add_to_queue():
     return jsonify({"message": "Task added to qeue"}), 201
 
 
-@app.route('/api/queue/claim', methods=['POST'])#robot claims task
+@app.route('/api/queue/claim', methods=['POST'])
 def claim_batch():
     data = request.json
     robot_id = data.get('robot_id')
-    batch_size = data.get('batch_size', 3) 
-    
+
     if not robot_id:
         return jsonify({"error": "robot_id is mandatory"}), 400
 
@@ -87,51 +92,53 @@ def claim_batch():
 
     cursor = conn.cursor(dictionary=True)
 
-    assigned_query = """
+    # Geef al toegewezen taak terug als de bot er nog mee bezig is
+    cursor.execute("""
         SELECT q.id, i.aisle
         FROM job_queue q
         JOIN items i ON q.item_id = i.id
         WHERE q.status = 'assigned' AND q.robot_id = %s
         ORDER BY q.id ASC
-        LIMIT %s
-    """
-    cursor.execute(assigned_query, (robot_id, batch_size))
-    assigned_tasks = cursor.fetchall()
-
-    if assigned_tasks:
+        LIMIT 1
+    """, (robot_id,))
+    assigned = cursor.fetchall()
+    if assigned:
         cursor.close()
         conn.close()
-        return jsonify(assigned_tasks), 200
-    
-    query = """
-        SELECT q.id, i.aisle 
-        FROM job_queue q
-        JOIN items i ON q.item_id = i.id
-        WHERE q.status = 'pending'
-        ORDER BY q.id ASC
-        LIMIT %s
-    """
-    cursor.execute(query, (batch_size,))
-    tasks = cursor.fetchall()
+        return jsonify(assigned), 200
 
-    if not tasks:
-        cursor.close()
-        conn.close()
-        return jsonify([]), 200
+    # Lock op Python-niveau zodat gelijktijdige requests niet dezelfde taak claimen
+    with _claim_lock:
+        try:
+            cursor.execute("""
+                SELECT q.id, i.aisle
+                FROM job_queue q
+                JOIN items i ON q.item_id = i.id
+                WHERE q.status = 'pending'
+                ORDER BY q.id ASC
+                LIMIT 1
+            """)
+            tasks = cursor.fetchall()
 
-    task_ids = [t['id'] for t in tasks]
-    format_strings = ','.join(['%s'] * len(task_ids))
-    update_query = f"UPDATE job_queue SET status = 'assigned', robot_id = %s WHERE id IN ({format_strings})"
-    
-    cursor.execute(update_query, (robot_id, *task_ids))
-    conn.commit()
-    
-    socketio.emit('queue_updated', {'message': 'Task assigned'})
+            if not tasks:
+                cursor.close()
+                conn.close()
+                return jsonify([]), 200
 
-    cursor.close()
-    conn.close()
-    
-    return jsonify(tasks)
+            cursor.execute(
+                "UPDATE job_queue SET status = 'assigned', robot_id = %s WHERE id = %s",
+                (robot_id, tasks[0]['id'])
+            )
+            conn.commit()
+            socketio.emit('queue_updated', {'message': 'Task assigned'})
+            cursor.close()
+            conn.close()
+            return jsonify(tasks), 200
+
+        except Exception as e:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": str(e)}), 500
 
 @app.route('/api/queue/complete', methods=['POST']) # task completed
 def complete_task():
@@ -181,10 +188,10 @@ def complete_task():
 def lock_aisle():
     data = request.json
     robot_id = data.get("robot_id")
-    target_node = data.get("aisle")  # Bijv. 'Ailse_2' of 'Ailse_2_A'
+    target_node = data.get("aisle")  # Bijv. 'Aisle_2' of 'Aisle_2_A'
     
     # We pakken de basisnaam van de gang (zodat we de HELE gang locken)
-    # "Ailse_2_A" wordt "Ailse_2". "Ailse_3" blijft gewoon "Ailse_3".
+    # "Aisle_2_A" wordt "Aisle_2". "Aisle_3" blijft gewoon "Aisle_3".
     parts = target_node.split('_')
     if len(parts) >= 2:
         base_aisle = f"{parts[0]}_{parts[1]}"
@@ -268,9 +275,10 @@ def get_locked_nodes():
 
 @app.route('/api/queue/aisle/reset_all', methods=['POST', 'GET'])
 def reset_all_aisles():
-    # Maak de hele dictionary met gelockte gangen leeg
     locked_aisles.clear()
+    aisle_states.clear()
     print("[API] Alle gangen zijn geforceerd vrijgegeven (RESET)!")
+    socketio.emit('aisle_updated', aisle_states)
     return jsonify({"success": True, "message": "Alle locks verwijderd"})
 
 @app.route('/api/queue/status', methods=['GET'])
@@ -303,6 +311,25 @@ def get_map():
             return jsonify(json.load(file_handle))
     except Exception as error:
         return jsonify({"error": str(error)}), 500
+
+@app.route('/api/aisle/state', methods=['POST'])
+def update_aisle_state():
+    data = request.json
+    aisle = data.get('aisle_id')
+    if not aisle:
+        return jsonify({"error": "aisle_id is mandatory"}), 400
+
+    aisle_states[aisle] = {
+        "locker": data.get("locker"),
+        "waiting": data.get("waiting", []),
+    }
+    print(f"[AISLE] {aisle}: locker={aisle_states[aisle]['locker']}, waiting={aisle_states[aisle]['waiting']}")
+    socketio.emit('aisle_updated', aisle_states)
+    return jsonify({"ok": True})
+
+@app.route('/api/aisle/states', methods=['GET'])
+def get_aisle_states():
+    return jsonify(aisle_states)
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True,  allow_unsafe_werkzeug=True)
