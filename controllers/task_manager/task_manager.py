@@ -61,33 +61,3 @@ class TaskManager:
         except Exception as e:
             print(f"Fout bij complete_task: {e}")
     
-    def lock_aisle(self, aisle_name):
-        try:
-            payload = {"robot_id": self.robot_id, "aisle": aisle_name}
-            request_url = f"{self.base_url}/aisle/lock" 
-            
-            print(f"[{self.robot_id}] POST naar: {request_url}") 
-            
-            response = requests.post(request_url, json=payload, timeout=5)
-            if response.status_code == 200:
-                return response.json().get("success", False)
-        except Exception as e:
-            print(f"[{self.robot_id}] CRASH bij bereiken API: {e}")
-        return False
-
-    def unlock_aisle(self):
-        """Meldt aan de API dat de robot uit de gang is, zodat anderen erin mogen."""
-        try:
-            payload = {"robot_id": self.robot_id}
-            requests.post(f"{self.base_url}/aisle/unlock", json=payload, timeout=5)
-        except Exception as e:
-            print(f"Fout bij API unlock_aisle: {e}")
-
-    def reset_all_locks(self):
-        try:
-            url = f"{self.base_url}/aisle/reset_all"
-            response = requests.post(url)
-            if response.status_code == 200:
-                print("Alle gelockte gangen zijn gereset in de API!")
-        except Exception as e:
-            print(f"Kon de API niet bereiken om te resetten: {e}")
