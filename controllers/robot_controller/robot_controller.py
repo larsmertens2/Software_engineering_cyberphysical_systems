@@ -22,22 +22,24 @@ from task_controller.task_controller import TaskManager
 
 
 class RobotController:
-    def __init__(self):
+    def __init__(self, warehouse_manager=None):
+        self.warehouse_manager = warehouse_manager
         self.robot = Robot()
         self.time_step = int(self.robot.getBasicTimeStep())
-        # self.robot_name = self.robot.getName() #alle robots
-        self.robot_name = "Bot_2"
+        self.robot_name = self.robot.getName()
         self.taskmanager = TaskManager(self.robot_name)
-        robot_name = self.robot.getName()  # Geeft "Bot_1", "Bot_2", of "Bot_3"
-        self.taskmanager = TaskManager(robot_name)
+        self.taskmanager.reset_all_locks()
+
+        self.wait_until = 0.0
 
         # Settings:
         #TODO: optimize these settings
         self.max_speed = 4 # Max is 6.28
         self.dist_error = 0.05 # Meters
         self.angle_error = 0.04 # Radians
-        self.obstacle_threshold = 0.15  # Afstand in meters, afblijven werkt fatsoenlijk 
-        self.view_angle = 75 # Graden om te scannen /2 links, /2 rechts,afblijven werkt fatsoenlijk 
+        self.nearby_threshold = 1 # Meters, voor obstakel detectie
+        self.obstacle_threshold = 0.5  # Afstand in meters
+        self.view_angle = 30 # Graden om te scannen /2 links, /2 rechts
 
         # Motors
         self.left_motor = self.robot.getDevice("left wheel motor")
@@ -58,9 +60,9 @@ class RobotController:
         self.lidar.enablePointCloud() 
 
         # States:
-        # Possible states: ROTATING, MOVING, IDLE, ... #TODO with more advanced steps later in the project (collision preventiopn etc...)
+        # Possible states: ROTATING, MOVING, IDLE, WAITING, ... #TODO with more advanced steps later in the project (collision preventiopn etc...)
         self.state = "IDLE"
-
+        
         # Map:
         self.load_map()
         dropoff_map = {
@@ -68,11 +70,11 @@ class RobotController:
         "Bot_2": "Droppoff_2",
         "Bot_3": "Droppoff_3",
         }
-
         self.current_node = dropoff_map.get(self.robot_name, "Droppoff_2")
         self.target_node_index = 0
         self.route = []
         self.obstructed_nodes = [] # List van nodes die momenteel geblokkeerd zijn (om later te gebruiken in de routeplanning)
+        self.current_locked_aisle = None
 
         #initialising Taskmanager
         self.taskmanager = TaskManager(self.robot_name)
@@ -80,6 +82,7 @@ class RobotController:
         self.final_destination = None   # De dropoff van de huidige taak
         self.current_task = None
         self.ReachedPackage = False
+        
 
     def load_map(self):
         data_path = os.path.join(os.path.dirname(__file__), "map.json")
@@ -96,31 +99,45 @@ class RobotController:
     def get_route(self, obstructed_nodes, end_node):
         self.route = shortest_path(self.nodes, obstructed_nodes, self.edges, self.current_node, end_node)
         print(f"Path: {self.route}")
-
+    
     def drive(self, left_speed, right_speed):
-        self.left_motor.setVelocity(left_speed)
-        self.right_motor.setVelocity(right_speed)
+            self.left_motor.setVelocity(left_speed)
+            self.right_motor.setVelocity(right_speed)
 
-    def is_path_clear(self):
+    def is_path_clear(self): #de vierkant berekening met gemini
         range_image = self.lidar.getRangeImage()
         if not range_image: 
             return True
 
-        # Instellingen voor de scan
-        vooruit_index = 180  # Lidar sensor staat achterstevoren
-
-        # We berekenen de indices die we willen controleren 160-200 graden
+        vooruit_index = 180 
+        # Je mag de hoek nu veilig heel breed zetten, bijv 90 of 120
+        self.view_angle = 90 
         start_index = vooruit_index - (self.view_angle // 2)
         eind_index = vooruit_index + (self.view_angle // 2)
         
+        # De afmetingen van je "virtuele bumper"
+        max_vooruit = 0.5   # Hoe ver vooruit kijken we? (meters)
+        robot_breedte = 0.2 # Hoe breed is het pad dat vrij moet zijn? (meters)
+        
         for i in range(start_index, eind_index):
-            # Gebruik gehele getallen om binnen de lijst-index te blijven
             index = i % 360
             distance = range_image[index]
             
-            # Check of er iets binnen de drempelwaarde is
-            if distance < self.obstacle_threshold:
-                return False
+            if math.isinf(distance) or math.isnan(distance):
+                continue
+                
+            # Bereken de hoek relatief tot de voorkant van de robot
+            # Index 180 is recht vooruit, dus (i - 180) is de afwijking in graden
+            hoek_graden = i - 180
+            hoek_radialen = math.radians(hoek_graden)
+            
+            # Converteer poolcoördinaten (afstand, hoek) naar X/Y coördinaten
+            x_vooruit = distance * math.cos(hoek_radialen)
+            y_zijwaarts = distance * math.sin(hoek_radialen)
+            
+            # Check of het object ZOWEL dichtbij genoeg is, ALS recht voor ons ligt
+            if x_vooruit < max_vooruit and abs(y_zijwaarts) < (robot_breedte / 2):
+                return False # Obstakel in ons directe rijpad!
                 
         return True
 
@@ -133,7 +150,7 @@ class RobotController:
         left_distance = range_image[90]
         right_distance = range_image[270]
 
-        narrow_threshold = 0.2  # Drempelwaarde voor het detecteren van een smalle doorgang
+        narrow_threshold = 0.4  # Drempelwaarde voor het detecteren van een smalle doorgang
 
         if left_distance < narrow_threshold and right_distance < narrow_threshold:
             return True #als beide zijden dicht zijn, is er waarschijnlijk een smalle doorgang
@@ -142,6 +159,17 @@ class RobotController:
     
     def run(self):
         while self.robot.step(self.time_step) != -1:
+
+            #als we moeten wachten omdat er geen route beschikbaar is
+            if self.state == "WAITING":
+                # Check of er al 30 seconden (simulatietijd) verstreken zijn
+                if self.robot.getTime() >= self.wait_until:
+                    print(f"{self.robot_name}: Klaar met wachten! Ik probeer opnieuw een route te plannen.")
+                    self.state = "IDLE"
+                else:
+                    self.drive(0, 0)
+                    continue
+
             # 1. CHECK: Zijn we op een eindbestemming?
             if not self.route or self.target_node_index >= len(self.route):
                 self.drive(0, 0)
@@ -172,20 +200,30 @@ class RobotController:
 
             # 2. PLANNING OF RIJDEN
             if self.state == "IDLE":
-                print("idle")
+                # print("idle")
                 if self.current_task is None:
                     if len(self.current_tasks_list) > 0:
                         self.current_task = self.current_tasks_list[0]
                         print(f"Nieuwe taak: Pickup {self.current_task[0]}")
                     else:
                         self.current_tasks_list = self.taskmanager.get_task_list(4)
-                        print("ASKED API")
+                        # print("ASKED API")
                 
                 if self.current_task is not None:
                     doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
                     self.get_route(self.obstructed_nodes, doel)
-                    self.target_node_index = 0
-                    self.state = "ROTATING"
+
+                    # als er geen route gevonden wordt
+                    if not self.route:
+                        print(f"{self.robot_name}: Geen route gevonden naar {doel}! Ik ga 30 seconden wachten...")
+                        self.state = "WAITING"
+                        self.wait_until = self.robot.getTime() + 30.0
+                        
+                        # We resetten de obstructed_nodes zodat hij over 30s met een schone lei opnieuw zoekt
+                        self.obstructed_nodes = [] 
+                    else:
+                        self.target_node_index = 0
+                        self.state = "ROTATING"
                 else:
                     continue
 
@@ -219,15 +257,35 @@ class RobotController:
                     self.left_distance = range_image[90]  # Rechts of links van de robot
                     self.right_distance = range_image[270]  # andere kant van de robot
 
-                    print(self.robot_name, range_image[180], path_is_clear)
-                    if not path_is_clear:
-                        # STOP de robot als het pad niet vrij is
-                        self.drive(0, 0)
-                        self.state = "IDLE"  # Terug naar idle
-                        self.obstructed_nodes.append(target_name)  # Voeg deze node toe aan de lijst van geblokkeerde nodes
-                        print(f"Node {target_name} is obstructed")
-                        self.route = []  # Wis de huidige route zodat er een nieuwe route gepland wordt in de volgende iteratie
+                    # Check of het een Ailse is EN of we deze specifieke node niet al zélf gelockt hebben
+                    if "Ailse" in target_name and self.current_locked_aisle is None: 
+                        lock_succes = self.taskmanager.lock_aisle(target_name)
+                        
+                        if not lock_succes:
+                            # Print dit één keer per seconde om te zien of hij wacht op de API
+                            if int(self.robot.getTime()) % 2 == 0:
+                                print(f"{self.robot_name} wacht geduldig tot {target_name} vrijkomt in de API...")
+                            
+                            self.drive(0, 0)
+                            continue
+                        else:
+                            self.current_locked_aisle = True  # We hebben de lock voor de hele gang!
+                            print(f"{self.robot_name} heeft de gang succesvol gelockt!")
 
+                    if not path_is_clear:
+                        self.drive(0, 0)
+                        self.obstructed_nodes.append(target_name)
+                        print(f"{self.robot_name}: Obstakel bij {target_name}! Ik keer terug naar {self.current_node}")
+                        
+                        if self.current_locked_aisle is not None and "Ailse" not in target_name:
+                            self.taskmanager.unlock_aisle()
+                            self.current_locked_aisle = None
+
+                        # Vervang de hele route door alleen de vorige node
+                        self.route = [self.current_node] 
+                        self.target_node_index = 0
+                        self.state = "ROTATING"
+                    
                     elif distance > self.dist_error and not self.detect_narrow_corridor():
                         correction = angle_diff * 3.0
                         self.drive(4.0 - correction, 4.0 + correction)
@@ -241,8 +299,15 @@ class RobotController:
 
                     else:
                         print(f"Node {target_name} reached")
+
+                        # We zijn nu fysiek op de nieuwe node. Als dit géén gang is, maar we kwamen wel uit een gang:
+                        if "Ailse" not in target_name and self.current_node and "Ailse" in self.current_node:
+                            print(f"{self.robot_name}: Ik sta nu stevig op {target_name} en ben de gang volledig uit, API unlock sturen!")
+                            self.taskmanager.unlock_aisle()
+                            self.current_locked_aisle = None
+
                         self.current_node = target_name 
-                        self.target_node_index += 1     # Verhoog teller
+                        self.target_node_index += 1     
                         self.state = "ROTATING"
 
 

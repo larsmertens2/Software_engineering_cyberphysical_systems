@@ -27,10 +27,10 @@
         "Ailse_3": {"x": 0.55, "y": 8.05},
         "Ailse_4": {"x": 0.55, "y": 6.45},
 
-        "Entrance_1_3": {"x": -2, "y": 8.05},
-        "Entrance_2_4": {"x": 2, "y": 8.05},
-        "Entrance_5_7": {"x": -2, "y": 6.45},
-        "Entrance_6_8": {"x": 2, "y": 6.45}
+        "Ailse_1_2": {"x": -2, "y": 6.45},
+        "Ailse_2_2": {"x": -2, "y": 8.05},
+        "Ailse_3_2": {"x": 2, "y": 8.05},
+        "Ailse_4_2": {"x": 2, "y": 6.45}
     },
     "edges": [
         ["Droppoff_1", "A1"],
@@ -76,10 +76,10 @@
         ["Ailse_4", "B2"],
         ["Ailse_4", "C2"],
 
-        ["Ailse_1", "Entrance_5_7"],
-        ["Ailse_2", "Entrance_1_3"],
+        ["Ailse_1", "Ailse_1_2"],
+        ["Ailse_2", "Ailse_2_2"],
 
-        ["Ailse_3", "Entrance_2_4"],
-        ["Ailse_4", "Entrance_6_8"]
+        ["Ailse_3", "Ailse_3_2"],
+        ["Ailse_4", "Ailse_4_2"]
     ]
 }

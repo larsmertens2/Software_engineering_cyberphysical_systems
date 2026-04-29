@@ -10,6 +10,7 @@ app = Flask(__name__)
 CORS(app) 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+locked_aisles = {}
 
 def resolve_map_file_path():
     candidates = [
@@ -160,7 +161,7 @@ def complete_task():
         conn.commit()
         
         socketio.emit('queue_updated', {'message': 'Task completed'})
-        socketio.emit('inventory_updated', {'message': 'Inevtory changed'})
+        socketio.emit('inventory_updated', {'message': 'Iventory changed'})
 
 
         return jsonify({
@@ -174,6 +175,60 @@ def complete_task():
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/api/queue/aisle/lock', methods=['POST'])
+def lock_aisle():
+    data = request.json
+    robot_id = data.get("robot_id")
+    target_node = data.get("aisle")  # Bijv. 'Ailse_2' of 'Ailse_2_A'
+    
+    # We pakken de basisnaam van de gang (zodat we de HELE gang locken)
+    # "Ailse_2_A" wordt "Ailse_2". "Ailse_3" blijft gewoon "Ailse_3".
+    parts = target_node.split('_')
+    if len(parts) >= 2:
+        base_aisle = f"{parts[0]}_{parts[1]}"
+    else:
+        base_aisle = target_node
+
+    # 1. Check of de gang AL bezet is
+    if base_aisle in locked_aisles:
+        # Is hij bezet door DEZE robot? -> Laat hem door! (Hij verplaatst zich binnen de gang)
+        if locked_aisles[base_aisle] == robot_id:
+            print(f"[API] Status: {robot_id} navigeert verder binnen {base_aisle}.")
+            return jsonify({"success": True})
+            
+        # Is hij bezet door een ANDERE robot? -> Tegenhouden!
+        else:
+            print(f"[API] Status: GEWEIGERD! {robot_id} wil in {base_aisle}, maar deze is GELOCKED door {locked_aisles[base_aisle]}.")
+            return jsonify({"success": False})
+
+    # 2. De gang is vrij! We geven deze robot toegang.
+    locked_aisles[base_aisle] = robot_id
+    print(f"[API] Status: {base_aisle} is nu succesvol GELOCKED door {robot_id}!")
+    return jsonify({"success": True})
+
+@app.route('/api/queue/aisle/unlock', methods=['POST'])
+def unlock_aisle():
+    data = request.json
+    robot_id = data.get('robot_id')
+    
+    unlocked_list = []
+    # Zoek alle gangen die door deze robot bezet zijn en geef ze vrij
+    # We gebruiken list(locked_aisles.items()) om de dictionary veilig aan te passen tijdens de loop
+    for aisle, bot in list(locked_aisles.items()):
+        if bot == robot_id:
+            del locked_aisles[aisle]
+            unlocked_list.append(aisle)
+            print(f"[API] {aisle} is VRIJGEGEVEN door {robot_id}")
+            
+    return jsonify({"success": True, "unlocked": unlocked_list}), 200
+
+@app.route('/api/queue/aisle/reset_all', methods=['POST', 'GET'])
+def reset_all_aisles():
+    # Maak de hele dictionary met gelockte gangen leeg
+    locked_aisles.clear()
+    print("[API] Alle gangen zijn geforceerd vrijgegeven (RESET)!")
+    return jsonify({"success": True, "message": "Alle locks verwijderd"})
 
 @app.route('/api/queue/status', methods=['GET'])
 def get_queue_status():

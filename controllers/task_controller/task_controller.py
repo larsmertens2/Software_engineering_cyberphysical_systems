@@ -2,7 +2,7 @@ import requests
 
 class TaskManager:
     def __init__(self, robot_id):
-        self.base_url = "http://localhost:5000/api/queue"
+        self.base_url = "http://127.0.0.1:5000/api/queue"
         self.robot_id = robot_id
 
         # Zorg dat de spelling van de droppoff exact overeenkomt met je map.json!
@@ -14,10 +14,10 @@ class TaskManager:
         self.dropoff_point = dropoff_map.get(robot_id, "Droppoff_2") 
         
         self.aisle_to_entrance = {
-            1: "Entrance_1_3", 3: "Entrance_1_3",
-            2: "Entrance_2_4", 4: "Entrance_2_4",
-            5: "Entrance_5_7", 7: "Entrance_5_7",
-            6: "Entrance_6_8", 8: "Entrance_6_8"
+            1: "Ailse_2_2", 3: "Ailse_2_2",
+            2: "Ailse_1_2", 4: "Ailse_1_2",
+            5: "Ailse_3_2", 7: "Ailse_3_2",
+            6: "Ailse_4_2", 8: "Ailse_4_2"
         }
 
     def get_task_list(self, size):
@@ -34,7 +34,7 @@ class TaskManager:
                 formatted_tasks = []
                 for t in api_tasks:
                     aisle_num = t.get('aisle')
-                    pickup_node = self.aisle_to_entrance.get(aisle_num, "Entrance_1_3")
+                    pickup_node = self.aisle_to_entrance.get(aisle_num, "Aisle_2_2")
                     
                     # CRUCIAAL: Voeg t.get('id') toe zodat de robot weet welke taak hij doet
                     formatted_tasks.append([pickup_node, self.dropoff_point, t.get('id')])
@@ -61,3 +61,36 @@ class TaskManager:
                 print(f"Kon taak {task_id} niet voltooien: {response.text}")
         except Exception as e:
             print(f"Fout bij complete_task: {e}")
+    
+    def lock_aisle(self, aisle_name):
+        try:
+            payload = {"robot_id": self.robot_id, "aisle": aisle_name}
+            request_url = f"{self.base_url}/aisle/lock" # We zetten de URL in een variabele
+            
+            print(f"[{self.robot_id}] POST naar: {request_url}") # Print de exacte URL!
+            
+            response = requests.post(request_url, json=payload, timeout=5)
+            # ... de rest van je code ...
+            if response.status_code == 200:
+                return response.json().get("success", False)
+        except Exception as e:
+            print(f"[{self.robot_id}] CRASH bij bereiken API: {e}") # AANGEPAST
+        return False
+
+    def unlock_aisle(self):
+        """Meldt aan de API dat de robot uit de gang is, zodat anderen erin mogen."""
+        try:
+            payload = {"robot_id": self.robot_id}
+            requests.post(f"{self.base_url}/aisle/unlock", json=payload, timeout=5)
+        except Exception as e:
+            print(f"Fout bij API unlock_aisle: {e}")
+
+    def reset_all_locks(self):
+        try:
+            # Pas het IP adres aan naar jouw backend IP
+            url = f"http://{self.api_ip}:5000/api/queue/aisle/reset_all"
+            response = requests.post(url)
+            if response.status_code == 200:
+                print("Alle gelockte gangen zijn gereset in de API!")
+        except Exception as e:
+            print(f"Kon de API niet bereiken om te resetten: {e}")
