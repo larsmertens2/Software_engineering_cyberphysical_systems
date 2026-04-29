@@ -1,0 +1,74 @@
+@startuml RobotFSM
+
+skinparam state {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+    StartColor Black
+    EndColor Black
+}
+skinparam note {
+    BackgroundColor #FFFDE7
+    BorderColor #888888
+}
+
+[*] --> IDLE
+
+state IDLE {
+    IDLE : entry / poll taskmanager\nplan route via get_route()
+}
+
+state WAITING {
+    WAITING : entry / set wait_until timer\ndo / motors stop (0, 0)
+}
+
+state ROTATING {
+    ROTATING : do / read GPS + compass\ndo / drive(val, -val) until aligned
+}
+
+state MOVING {
+    MOVING : do / navigate_to_waypoint(slow_factor=3)\ndo / GPS correction steering\ndo / LIDAR wall correction in corridor
+}
+
+state MOVING_AISLE {
+    MOVING_AISLE : do / navigate_to_waypoint(slow_factor=1.5)\ndo / send EXITING on aisle exit
+}
+
+state WAITING_AISLE {
+    WAITING_AISLE : entry / send REQUEST_ENTRY via Emitter\ndo / motors stop (0, 0)\ndo / poll Receiver for response
+}
+
+' ── IDLE transitions ──────────────────────────────────────
+IDLE --> WAITING        : no route found\n[wait 30s]
+IDLE --> ROTATING       : route found
+IDLE --> IDLE           : no task available\n[throttle 2s]
+
+' ── WAITING transitions ───────────────────────────────────
+WAITING --> IDLE        : timer expired
+
+' ── ROTATING transitions ──────────────────────────────────
+ROTATING --> MOVING         : aligned &&\ntarget not aisle
+ROTATING --> MOVING_AISLE   : aligned &&\ntarget is aisle &&\nalready in aisle
+ROTATING --> WAITING_AISLE  : aligned &&\ntarget is aisle &&\nnot yet in aisle
+
+' ── MOVING transitions ────────────────────────────────────
+MOVING --> ROTATING     : obstacle detected\n(reroute to current node)
+MOVING --> ROTATING     : waypoint reached &&\nmore waypoints remain
+MOVING --> IDLE         : route finished\n(pickup / dropoff check)
+
+' ── MOVING_AISLE transitions ──────────────────────────────
+MOVING_AISLE --> ROTATING   : obstacle detected\n(send EXITING + reroute)
+MOVING_AISLE --> ROTATING   : waypoint reached &&\nmore waypoints remain
+MOVING_AISLE --> IDLE       : route finished\n(pickup / dropoff check)
+
+' ── WAITING_AISLE transitions ─────────────────────────────
+WAITING_AISLE --> MOVING_AISLE : ENTRY_GRANTED\nreceived
+
+' ── Emergency override ────────────────────────────────────
+note as EmergencyNote
+  **Emergency override** (checked every step, before state handler)
+  If emergency_active == True:
+    motors stop (0, 0) — state is NOT changed
+end note
+
+@enduml

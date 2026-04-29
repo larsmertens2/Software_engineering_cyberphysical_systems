@@ -7,11 +7,12 @@ This controller only implements the final state machine of the robot, the follow
 - navigation.py: loading map and calculating route
 
 States:
-  IDLE:              taak ophalen en route plannen
-  WAITING:          wachten op timer (geen route / gang bezet)
-  ROTATING:         draaien naar volgend waypoint
-  MOVING:           rijden naar waypoint met obstakeldetectie (slow_factor=3)
-  MOVING_AISLE:     rijden in een gang: ganglocking + mildere reductie (slow_factor=1.5)
+  IDLE:             Retrieve task, plan a route
+  WAITING:          wait for timer to expire
+  ROTATING:         rotate to next waypoint
+  MOVING:           move towards next waypoint, use obstacle detection
+  MOVING_AISLE:     drive in an aisle, lock the aisle.
+  WAITING_AISLE:    wait for permission to enter aisle
 
 Referenties:
 - Webots TurtleBot3 voorbeeld: https://github.com/cyberbotics/webots/blob/R2021b/projects/robots/robotis/turtlebot/controllers/turtlebot3_ostacle_avoidance/turtlebot3_ostacle_avoidance.c
