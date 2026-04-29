@@ -27,7 +27,6 @@ class TaskManager:
             
             if response.status_code == 200:
                 api_tasks = response.json()
-                # print(f"!!! [{self.robot_id}] ONTVANGT VAN API: {api_tasks}")
                 
                 if not api_tasks:
                     return []
@@ -41,25 +40,25 @@ class TaskManager:
                 
                 return formatted_tasks
             else:
-                print(f"Claim mislukt: HTTP {response.status_code}")
+                print(f"Claim failed: HTTP {response.status_code}")
                 
         except Exception as e:
-            print(f"Fout bij verbinden met Flask: {e}")
+            print(f"could not connect to flask: {e}")
         return []
 
     def complete_task(self, task_id):
-        """Meldt bij de Flask API dat de taak klaar is"""
+        """tall flask api task is done"""
         if task_id is None:
             return
             
         try:
             response = requests.post(f"{self.base_url}/complete", json={"task_id": task_id}, timeout=5)
             if response.status_code == 200:
-                print(f"Taak {task_id} succesvol afgemeld in database.")
+                print(f"task {task_id} deleted from database")
             else:
-                print(f"Kon taak {task_id} niet voltooien: {response.text}")
+                print(f"could not complete task {task_id}: {response.text}")
         except Exception as e:
-            print(f"Fout bij complete_task: {e}")
+            print(f"error when complete_task: {e}")
     
     def lock_aisle(self, aisle_name):
         try:
@@ -72,22 +71,22 @@ class TaskManager:
             if response.status_code == 200:
                 return response.json().get("success", False)
         except Exception as e:
-            print(f"[{self.robot_id}] CRASH bij bereiken API: {e}")
+            print(f"[{self.robot_id}] CRASH while reaching API: {e}")
         return False
 
     def unlock_aisle(self):
-        """Meldt aan de API dat de robot uit de gang is, zodat anderen erin mogen."""
+        """tell api robot exited aisle"""
         try:
             payload = {"robot_id": self.robot_id}
             requests.post(f"{self.base_url}/aisle/unlock", json=payload, timeout=5)
         except Exception as e:
-            print(f"Fout bij API unlock_aisle: {e}")
+            print(f"error at API unlock_aisle: {e}")
 
     def reset_all_locks(self):
         try:
             url = f"{self.base_url}/aisle/reset_all"
             response = requests.post(url)
             if response.status_code == 200:
-                print("Alle gelockte gangen zijn gereset in de API!")
+                print("alll locked ailse reset in API!")
         except Exception as e:
-            print(f"Kon de API niet bereiken om te resetten: {e}")
+            print(f"could not reach API: {e}")

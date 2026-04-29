@@ -119,9 +119,6 @@
     </section>
 </div>
 <style>
-    /* ... Je bestaande CSS ... */
-
-    /* Nieuwe styles voor status tags */
     .status-tag {
         padding: 4px 10px;
         border-radius: 20px;
@@ -150,7 +147,6 @@
         font-size: 0.9rem;
     }
     
-    /* Zorg dat de tabel er netjes uitziet */
     .table-wrapper {
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }

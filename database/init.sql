@@ -19,19 +19,19 @@ CREATE TABLE IF NOT EXISTS job_queue (
 
 
 INSERT INTO items (name, category, stock, aisle) VALUES 
-('Smartphone', 'Electro', 50, 1),
-('Koffiezet', 'Keukengerief', 20, 3),
-('Laptop Stand', 'Electro', 15, 2),
-('Draadloze Muis', 'Electro', 30, 2),
-('Waterkoker', 'Keuken', 10, 3),
-('Bureaustoel', 'Meubilair', 5, 4),
+('Smartphone', 'Electronics', 50, 1),
+('Coffee Maker', 'Kitchenware', 20, 3),
+('Laptop Stand', 'Electronics', 15, 2),
+('Wireless Mouse', 'Electronics', 30, 2),
+('Electric Kettle', 'Kitchen', 10, 3),
+('Office Chair', 'Furniture', 5, 4),
 ('LED Strip', 'Home Improvement', 100, 5),
-('Monitor Arm', 'Electro', 12, 2);
+('Monitor Arm', 'Electronics', 12, 2);
 
 
 INSERT INTO job_queue (item_id) VALUES 
-(1), -- Smartphone (Aisle 1)
-(2), -- Koffiezet (Aisle 3)
-(4), -- Draadloze Muis (Aisle 2)
-(6), -- Bureaustoel (Aisle 4)
-(1); -- Nog een Smartphone
+(1), 
+(2),
+(4), 
+(6), 
+(1); 

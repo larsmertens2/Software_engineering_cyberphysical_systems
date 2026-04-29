@@ -1,7 +1,6 @@
 import { browser } from '$app/environment';
 
 export async function load({ fetch }) {
-    // CRUCIAAL: Gebruik de servicenaam 'backend' als we op de server draaien
     const apiHost = browser ? 'http://localhost:5000' : 'http://backend:5000';
     
     try {

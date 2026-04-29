@@ -14,7 +14,7 @@ States:
   MOVING_AISLE:     drive in an aisle, lock the aisle.
   WAITING_AISLE:    wait for permission to enter aisle
 
-Referenties:
+references:
 - Webots TurtleBot3 voorbeeld: https://github.com/cyberbotics/webots/blob/R2021b/projects/robots/robotis/turtlebot/controllers/turtlebot3_ostacle_avoidance/turtlebot3_ostacle_avoidance.c
 - Webots-ontwikkelingsdocumentatie: https://pockerman-py-cubeai.readthedocs.io/en/latest/Examples/Webots/webots_ctrl_dev_101.html
 """
@@ -214,7 +214,6 @@ class RobotController:
                     self._request_aisle_entry(target_name, self.current_node)
                     self._transition("WAITING_AISLE")
                 else:
-                    # Al in de gang, geen nieuwe request nodig
                     self._transition("MOVING_AISLE")
             else:
                 # Normal moving
@@ -284,7 +283,7 @@ class RobotController:
             self._drive(self.max_speed + correction, self.max_speed - correction, slow_factor)
 
     def _check_emergency_status(self):
-        # Poll the backend for emergency status."""
+        # Poll the backend for emergency status.
         current_time = time.time()
         
         # Throttle: check each N seconds
@@ -339,7 +338,7 @@ class RobotController:
             "aisle": self.current_locked_aisle,
         })
         self.emitter.send(msg.encode())
-        print(f"{self.robot_name}: Gang {self.current_locked_aisle} verlaten")
+        print(f"{self.robot_name}: leaving aisle {self.current_locked_aisle}")
         self.current_locked_aisle = None
 
     def _poll_receiver(self):
@@ -349,13 +348,13 @@ class RobotController:
             self.receiver.nextPacket()
             if msg.get("to") == self.robot_name:
                 self.aisle_response = msg["type"]
-                print(f"{self.robot_name}: Aisle response: {msg['type']} voor {msg.get('aisle')}")
+                print(f"{self.robot_name}: Aisle response: {msg['type']} for {msg.get('aisle')}")
 
     def _handle_obstacle(self, target_name):
         # React to a blocked path
         self._drive(0, 0)
         self.obstructed_nodes.append(target_name)
-        print(f"{self.robot_name}: Obstakel bij {target_name}! Terug naar {self.current_node}")
+        print(f"{self.robot_name}: obstacle at {target_name}! go back to {self.current_node}")
 
         if self.current_locked_aisle is not None and "Aisle" not in target_name:
             self._notify_aisle_exit()
@@ -367,7 +366,7 @@ class RobotController:
 
     def _on_waypoint_reached(self, target_name):
         # Handle logic when a waypoint/node is reached
-        print(f"{self.robot_name}: Node {target_name} bereikt")
+        print(f"{self.robot_name}: Node {target_name} reached")
 
         if "Aisle" not in target_name and self.current_node and "Aisle" in self.current_node:
             self._notify_aisle_exit()
@@ -386,11 +385,11 @@ class RobotController:
 
         if self.current_task is not None:
             if self.current_node == self.current_task[0] and not self.ReachedPackage:
-                print(f"{self.robot_name}: PAKKET OPGEHAALD")
+                print(f"{self.robot_name}: PAcjet sent")
                 self.ReachedPackage = True
 
             elif self.current_node == self.current_task[1] and self.ReachedPackage:
-                print(f"{self.robot_name}: TAAK VOLTOOID")
+                print(f"{self.robot_name}: Task completed")
                 self.taskmanager.complete_task(self.current_task[2])
                 self.obstructed_nodes = []
                 self.ReachedPackage = False

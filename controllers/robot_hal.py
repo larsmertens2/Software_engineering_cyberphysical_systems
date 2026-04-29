@@ -1,8 +1,9 @@
 """
 HARDWARE ABSTRACTION LAYER - Webots TurtleBot3 Robot
 
-Abstraheert hardware-interacties specifiek voor TurtleBot3 robots.
-Bevat motoren, sensoren en communicatie.
+Abstracts hardware interactions specific to TurtleBot3 robots.
+
+Includes motors, sensors, and communication.
 """
 
 from controller import Robot
@@ -13,7 +14,7 @@ from controllers.hal_components import Motor, GPSSensor, CompassSensor, LIDARSen
 
 
 class RobotHAL:
-    """Hardware Abstraction Layer voor TurtleBot3 robot."""
+    """Hardware Abstraction Layer for TurtleBot3 robot."""
     
     def __init__(self, robot_instance):
         """
@@ -42,38 +43,38 @@ class RobotHAL:
         )
         
     def _init_motor(self, motor_name):
-        """Initialiseer een motor."""
+        """initialise a motor."""
         motor = Motor(self._robot.getDevice(motor_name))
         motor.set_position_infinite()
         motor.set_velocity(0)
         return motor
     
     def get_name(self):
-        """Haal robot-naam op."""
+        """get robot name op."""
         return self._robot.getName()
     
     def get_Name(self):
-        """Haal robot-naam op (camelCase variant)."""
+        """get robot name op (camelCase variant)."""
         return self._robot.getName()
     
     def get_time_step(self):
-        """Haal timestep op."""
+        """get timestep"""
         return self._time_step
     
     def getBasicTimeStep(self):
-        """Haal timestep op (Webots API compatible)."""
+        """get timestep (Webots API compatible)."""
         return self._time_step
     
     def get_time(self):
-        """Haal huidige simulatietijd op."""
+        """get the current simulation time"""
         return self._robot.getTime()
     
     def step(self, time_step):
-        """Voer een simulatiestap uit."""
+        """does a simulation step"""
         return self._robot.step(time_step)
     
     def getDevice(self, device_name):
-        """Haal een device op en wrap het in passende HAL klasse."""
+        """get a device and wrap it in HAL class"""
         device = self._robot.getDevice(device_name)
         
         if device_name.lower() in ['receiver']:
@@ -81,11 +82,10 @@ class RobotHAL:
         elif device_name.lower() in ['emitter']:
             return Emitter(device)
         else:
-            # Generieke device (ongewrapped)
             return device
 
 
 def create_robot_hal():
-    """Factory-functie om robot HAL te creëren."""
+    """Factory-functie to create robot HAL"""
     robot_instance = Robot()
     return RobotHAL(robot_instance)

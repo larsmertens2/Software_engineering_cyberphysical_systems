@@ -55,14 +55,12 @@
     let nodes = $derived(mapData?.nodes ? Object.entries(mapData.nodes) : []);
     let edges = $derived(mapData?.edges ?? []);
 
-    // Robots die wachten op een aisle: toon op hun exacte node-positie
     let waitingRobots = $derived(
         Object.entries(aisleStates).flatMap(([aisle, st]) =>
             (st.waiting ?? []).map(w => ({ robot_id: w.robot_id, node: w.node, aisle }))
         )
     );
 
-    // Robots die in de aisle zijn: toon bij de entrance node van die aisle
     let inAisleRobots = $derived(
         Object.entries(aisleStates)
             .filter(([_, st]) => st.locker)
@@ -87,11 +85,9 @@
             </text>
         {:else if mapData}
 
-            <!-- Edges -->
             {#each edges as [start, end]}
                 {#if mapData.nodes[start] && mapData.nodes[end]}
                     {#if start.includes('Aisle') && end.includes('Aisle')}
-                        <!-- Aisle edge: groen = vrij, rood = bezet -->
                         <line
                             x1={getX(mapData.nodes[start].x)} y1={getY(mapData.nodes[start].y)}
                             x2={getX(mapData.nodes[end].x)}   y2={getY(mapData.nodes[end].y)}
@@ -113,7 +109,6 @@
                 {/if}
             {/each}
 
-            <!-- Nodes -->
             {#each nodes as [name, coord]}
                 <circle
                     cx={getX(coord.x)} cy={getY(coord.y)}
@@ -132,7 +127,6 @@
                 {/if}
             {/each}
 
-            <!-- Robots in de aisle: gestippeld, bij entrance node -->
             {#each inAisleRobots as r}
                 {#if mapData.nodes[r.aisle_node]}
                     <g class="robot-marker" opacity="0.8">
@@ -155,7 +149,6 @@
                 {/if}
             {/each}
 
-            <!-- Wachtende robots: vol, op exacte node-positie -->
             {#each waitingRobots as r}
                 {#if mapData.nodes[r.node]}
                     <g class="robot-marker">

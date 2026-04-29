@@ -23,7 +23,6 @@
 		}
 	}
 
-	// Check emergency status on mount
 	async function checkEmergencyStatus() {
 		try {
 			const response = await fetch('http://localhost:5000/api/emergency', {
@@ -41,7 +40,7 @@
 
 	$effect(() => {
 		checkEmergencyStatus();
-		const interval = setInterval(checkEmergencyStatus, 1000); // Poll elke seconde
+		const interval = setInterval(checkEmergencyStatus, 1000); 
 		return () => clearInterval(interval);
 	});
 </script>
@@ -91,7 +90,7 @@
 
 	.app-body {
 		display: flex;
-		height: calc(100vh - 60px); /* Trek de header hoogte eraf */
+		height: calc(100vh - 60px);
 	}
 
 	.sidebar {
@@ -100,7 +99,6 @@
 		border-right: 1px solid #ddd;
 		padding-top: 1rem;
 		
-		/* Nieuwe regels: */
 		display: flex;
 		flex-direction: column;
 		align-items: center; 

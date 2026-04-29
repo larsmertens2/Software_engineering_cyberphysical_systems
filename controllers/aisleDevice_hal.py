@@ -1,8 +1,8 @@
 """
 HARDWARE ABSTRACTION LAYER - AisleDevice
 
-Abstraheert hardware-interacties specifiek voor AisleDevice.
-Bevat enkel communicatie-devices (Emitter, Receiver).
+abstracts hardware layer specifically for  AisleDevice.
+contains only communication devices (Emitter, Receiver).
 """
 
 from controller import Robot
@@ -13,7 +13,7 @@ from controllers.hal_components import Receiver, Emitter
 
 
 class AisleDeviceHAL:
-    """Hardware Abstraction Layer voor AisleDevice (communicatie-only)."""
+    """Hardware Abstraction Layer for AisleDevice (communicatie-only)."""
     
     def __init__(self, robot_instance):
         """
@@ -28,27 +28,27 @@ class AisleDeviceHAL:
         self.emitter = Emitter(self._robot.getDevice('emitter'))
     
     def get_name(self):
-        """Haal device-naam op."""
+        """get device name."""
         return self._robot.getName()
     
     def get_Name(self):
-        """Haal device-naam op (camelCase variant)."""
+        """get device name in camelCase"""
         return self._robot.getName()
     
     def get_time_step(self):
-        """Haal timestep op."""
+        """get timestep"""
         return self._time_step
     
     def getBasicTimeStep(self):
-        """Haal timestep op (Webots API compatible)."""
+        """get timestep (webots API compatible)"""
         return self._time_step
     
     def step(self, time_step):
-        """Voer een simulatiestap uit."""
+        """do a simulation step"""
         return self._robot.step(time_step)
 
 
 def create_aisle_device_hal():
-    """Factory-functie om AisleDevice HAL te creëren."""
+    """Factory-function to create AisleDevice HAL"""
     robot_instance = Robot()
     return AisleDeviceHAL(robot_instance)

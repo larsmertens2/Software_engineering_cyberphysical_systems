@@ -4,17 +4,14 @@
 
     let { data } = $props(); 
 
-    // 1. Move the data into local state so we can update it manually
     let items = $state(data.items ?? []);
 
     let searchTerm = $state("");
 
-    // Keep local state in sync if data prop changes from +page.js
     $effect(() => {
         items = data.items ?? [];
     });
 
-    // 2. Setup WebSocket connection
     onMount(() => {
         const socket = io('http://localhost:5000');
 
@@ -26,11 +23,9 @@
         return () => socket.disconnect();
     });
 
-    // Function to fetch the latest inventory without a full page reload
     async function refreshInventory() {
 		const res = await fetch('http://localhost:5000/api/items');
 		if (res.ok) {
-			// Hier updaten we de lokale state handmatig na het WebSocket signaal
 			items = await res.json();
 		}
 	}
@@ -120,7 +115,6 @@
 	h1 { margin: 0; font-size: 1.5rem; }
 	.subtitle { color: #888; margin: 4px 0 0 0; font-size: 0.9rem; }
 
-	/* Zoekbalk Styling */
 	.search-container {
 		position: relative;
 		width: 10%;
@@ -139,7 +133,6 @@
 
 	input:focus { border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,0.1); }
 
-	/* Tabel Details */
 	.table-wrapper { background: white; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; }
 	table { width: 100%; border-collapse: collapse; }
 	td { padding: 1rem; border-bottom: 1px solid #f9f9f9; }
