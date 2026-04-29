@@ -17,7 +17,6 @@ def shortest_path(nodes, obstructed_nodes, edges, start_node, end_node):
     adj = { node: [] for node in nodes }
     for u, v in edges:
         adj[u].append(v)
-        adj[v].append(u)
 
     queue = deque([[start_node]])
     visited = { start_node}
