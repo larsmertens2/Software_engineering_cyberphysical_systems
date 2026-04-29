@@ -26,8 +26,9 @@ import sys
 from sensors import get_direction, is_path_clear, detect_narrow_corridor, get_side_distances
 from motion import drive
 from navigation import load_map, get_route
-from hardware_abstraction_layer import create_robot_hal
+from controllers.robot_hal import create_robot_hal
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 parent_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(parent_dir)
 from task_controller.task_controller import TaskManager
@@ -71,8 +72,8 @@ class RobotController:
         self.lidar.enablePointCloud()
 
         # Communicatie met aisle devices
-        self.emitter = self.robot.getDevice("Emitter")
-        self.receiver = self.robot.getDevice("Receiver")
+        self.emitter = self.hal.getDevice("Emitter")
+        self.receiver = self.hal.getDevice("Receiver")
         self.receiver.enable(self.time_step)
         self.aisle_response = None
 
@@ -116,7 +117,7 @@ class RobotController:
             self.state = new_state
 
     def run(self):
-        while self.robot.step(self.time_step) != -1:
+        while self.hal.step(self.time_step) != -1:
             self._poll_receiver()
             self._state_handlers[self.state]()
 
@@ -131,11 +132,11 @@ class RobotController:
                 self.current_task = self.current_tasks_list[0]
                 print(f"{self.robot_name}: Nieuwe taak: Pickup {self.current_task[0]}")
             else:
-                if self.robot.getTime() < self.wait_until:
+                if self.hal.get_time() < self.wait_until:
                     return  # Throttle: wacht voor opnieuw claimen
                 self.current_tasks_list = self.taskmanager.get_task_list(1)
                 if not self.current_tasks_list:
-                    self.wait_until = self.robot.getTime() + 2.0  # 2s wachten voor volgende poging
+                    self.wait_until = self.hal.get_time() + 2.0  # 2s wachten voor volgende poging
                 return  # Nog geen taak beschikbaar
 
         doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]

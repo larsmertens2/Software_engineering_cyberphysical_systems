@@ -1,5 +1,9 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import math
-import hardware_abstraction_layer as hal
+import controllers.robot_hal as hal
 
 def get_direction(compass_sensor):
     direction = compass_sensor.get_direction()  # ← HAL method

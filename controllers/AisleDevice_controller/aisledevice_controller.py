@@ -1,18 +1,27 @@
-import json, requests
-from controller import Robot
+import sys
+import os
+import json
+import requests
+
+# Add project root to path so we can import controllers module
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from controllers.aisleDevice_hal import create_aisle_device_hal
 
 class AisleDeviceController:
     def __init__(self):
         self.base_url = "http://127.0.0.1:5000/api"
 
-        self.robot = Robot()
-        self.time_step = int(self.robot.getBasicTimeStep())
-        self.aisle_id = self.robot.getName()
+        self.hal = create_aisle_device_hal()
+        self.time_step = int(self.hal.getBasicTimeStep())
+        self.aisle_id = self.hal.get_Name()
 
-        self.receiver = self.robot.getDevice('receiver')
+        self.receiver = self.hal.receiver
         self.receiver.enable(self.time_step)
-        self.emitter = self.robot.getDevice('emitter')
-
+        self.emitter = self.hal.emitter
+        
+        self.robot = self.hal._robot
+        
         self.locker = None
         self.queue = []
         self._step_count = 0
@@ -34,11 +43,11 @@ class AisleDeviceController:
             print(f"[{self.aisle_id}] Backend update mislukt: {e}")
 
     def run(self):
-        self.robot.step(self.time_step)
+        self.hal.step(self.time_step)
         self.update_state()
         print(f"[{self.aisle_id}] State gereset bij herstart")
 
-        while self.robot.step(self.time_step) != -1:
+        while self.hal.step(self.time_step) != -1:
             self._step_count += 1
 
             # Heartbeat elke 500 stappen zodat je ziet dat het device draait
