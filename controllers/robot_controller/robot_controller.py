@@ -247,11 +247,11 @@ class RobotController:
             self._transition("MOVING_AISLE")
 
     # -------------------------------------------------------------------------
-    # Hulpmethoden (geen state-logica)
+    # Help functions
     # -------------------------------------------------------------------------
 
     def _navigate_to_waypoint(self, slow_factor):
-        """Gedeelde rijlogica voor MOVING en MOVING_AISLE."""
+        # Logic when moving towards the next node
         target_name = self.route[self.target_node_index]
         target_pos = self.nodes[target_name]
 
@@ -262,17 +262,17 @@ class RobotController:
         distance = self._calc_distance(position, target_pos)
         angle_diff = self._calc_angle_diff(position, target_pos)
 
-        # --- Obstakeldetectie ---
+        # Obstacle detection
         if not is_path_clear(self.lidar, self.obstacle_threshold):
             self._handle_obstacle(target_name)
             return
 
-        # --- Waypoint bereikt ---
+        # Arrived at waypoint
         if distance <= self.dist_error:
             self._on_waypoint_reached(target_name)
             return
 
-        # --- Rijden: GPS-correctie of wandcorrectie in smalle gang ---
+        # Drive: GPS correction, lidar correction in aisle
         left_dist, right_dist = get_side_distances(self.lidar)
         if not detect_narrow_corridor(self.lidar):
             correction = angle_diff * 3.0
@@ -281,12 +281,12 @@ class RobotController:
             correction = 0.0 if math.isinf(left_dist) or math.isinf(right_dist) \
                          else (left_dist - right_dist) * 3.0
             self._drive(self.max_speed + correction, self.max_speed - correction, slow_factor)
-            
+
     def _check_emergency_status(self):
-        """Poll de backend om de emergency status te controleren."""
+        # Poll the backend for emergency status."""
         current_time = time.time()
         
-        # Throttle: check elke N seconden
+        # Throttle: check each N seconds
         if current_time - self.last_emergency_check < self.emergency_check_interval:
             return
         
@@ -306,16 +306,16 @@ class RobotController:
                         print(f"{self.robot_name}: EMERGENCY ACTIVATED!")
         except urllib.error.URLError as e:
             print(f"{self.robot_name}: Error checking emergency status: {e}")
-            # Bij Fehler, nicht stoppen - weiter fahren
         except Exception as e:
             print(f"{self.robot_name}: Unexpected error checking emergency: {e}")
 
     def _get_base_aisle(self, node_name):
-        """Geeft de basis-aisle terug: 'Aisle_1_2' -> 'Aisle_1'."""
+        """Returns the base aisle: 'Aisle_1_2' -> 'Aisle_1'."""
         parts = node_name.split("_")
         return "_".join(parts[:2])
 
     def _request_aisle_entry(self, node_name, current_node):
+        # Request entry to aisle
         base = self._get_base_aisle(node_name)
         self.current_locked_aisle = base
         self.aisle_response = None
@@ -329,7 +329,7 @@ class RobotController:
         print(f"{self.robot_name}: Toegang gevraagd aan {base}")
 
     def _notify_aisle_exit(self):
-        """Stuur EXITED naar het aisle device en reset de lock state."""
+        # Send exited when exiting an aisle
         if self.current_locked_aisle is None:
             return
         msg = json.dumps({
@@ -342,7 +342,7 @@ class RobotController:
         self.current_locked_aisle = None
 
     def _poll_receiver(self):
-        """Verwerk inkomende berichten van aisle devices."""
+        # Poll messages from aisle devices and update self.aisle_response if relevant messages are received.
         while self.receiver.getQueueLength() > 0:
             msg = json.loads(self.receiver.getString())
             self.receiver.nextPacket()
@@ -351,7 +351,7 @@ class RobotController:
                 print(f"{self.robot_name}: Aisle response: {msg['type']} voor {msg.get('aisle')}")
 
     def _handle_obstacle(self, target_name):
-        """Reageer op een geblokkeerd pad: voeg node toe aan obstructed en herplan."""
+        # React to a blocked path
         self._drive(0, 0)
         self.obstructed_nodes.append(target_name)
         print(f"{self.robot_name}: Obstakel bij {target_name}! Terug naar {self.current_node}")
@@ -365,7 +365,7 @@ class RobotController:
         self._transition("ROTATING")
 
     def _on_waypoint_reached(self, target_name):
-        """Verwerk het bereiken van een waypoint en bepaal de volgende state."""
+        # Handle logic when a waypoint/node is reached
         print(f"{self.robot_name}: Node {target_name} bereikt")
 
         if "Aisle" not in target_name and self.current_node and "Aisle" in self.current_node:
@@ -380,7 +380,7 @@ class RobotController:
             self._on_route_finished()
 
     def _on_route_finished(self):
-        """Verwerk het einde van een route: pickup/dropoff check, dan terug naar IDLE."""
+        # Handle logic when the end of a route is reached
         self._drive(0, 0)
 
         if self.current_task is not None:
