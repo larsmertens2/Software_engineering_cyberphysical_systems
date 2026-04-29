@@ -4,6 +4,7 @@ class TaskManager:
     def __init__(self, robot_id):
         self.base_url = "http://127.0.0.1:5000/api/queue"
         self.robot_id = robot_id
+        self.api_ip = "localhost"
 
         # Zorg dat de spelling van de droppoff exact overeenkomt met je map.json!
         dropoff_map = {
