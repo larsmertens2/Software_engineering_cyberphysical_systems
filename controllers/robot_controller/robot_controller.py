@@ -85,7 +85,7 @@ class RobotController:
             "Bot_2": "Droppoff_2",
             "Bot_3": "Droppoff_3",
         }
-        self.current_node = dropoff_map.get(self.robot_name, "Droppoff_2")
+        self.current_node = dropoff_map.get(self.robot_name)
         self.target_node_index = 0
         self.route = []
         self.obstructed_nodes = []

@@ -12,7 +12,7 @@ class TaskManager:
         "Bot_2": "Droppoff_2",
         "Bot_3": "Droppoff_3",
         }     
-        self.dropoff_point = dropoff_map.get(robot_id, "Droppoff_2") 
+        self.dropoff_point = dropoff_map.get(robot_id) 
         
         self.aisle_to_entrance = {
             1: "Aisle_2_2", 3: "Aisle_2_2",
