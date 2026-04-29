@@ -1,0 +1,88 @@
+' Generated with AI
+
+@startuml Frontend
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+skinparam package {
+    BackgroundColor #F0F0FF
+    BorderColor Black
+}
+
+package "Frontend (SvelteKit)" {
+
+    class Layout {
+        - emergencyActive : bool
+        --
+        + toggleEmergency()
+        + checkEmergencyStatus()
+        ..WebSocket..
+        on: emergency_updated
+        ..Routes..
+        / → QueuePage
+        /inventory → InventoryPage
+        /map → MapPage
+    }
+
+    class QueuePage {
+        - showPopup : bool
+        - newItemId : str
+        - rawQueueData : array
+        ..derived..
+        # activeQueue : mapped queue items
+        --
+        + refreshQueue()
+        + handleSubmit()
+        ..WebSocket..
+        on: queue_updated → refreshQueue()
+        ..Load..
+        GET /api/queue/status
+        POST /api/queue
+    }
+
+    class InventoryPage {
+        - items : array
+        - searchTerm : str
+        ..derived..
+        # inventory : mapped items
+        # filteredInventory : filtered by name / id
+        --
+        + refreshInventory()
+        ..WebSocket..
+        on: inventory_updated → refreshInventory()
+        ..Load..
+        GET /api/items
+    }
+
+    class MapPage {
+        - mapData : nodes + edges
+        - aisleStates : dict
+        - isLoading : bool
+        - loadError : str
+        ..WebSocket..
+        on: aisle_updated
+        ..Load..
+        GET /api/map
+        GET /api/aisle/states
+        ..Rendering (SVG)..
+        Nodes, Edges, Robots
+    }
+}
+
+Layout *-down- QueuePage     : /
+Layout *-down- InventoryPage : /inventory
+Layout *-down- MapPage       : /map
+
+note right of MapPage
+  Color coding robots:
+  Bot_1 → red
+  Bot_2 → blue
+  Bot_3 → green
+  Aisle edge: green=free, red=occupied
+end note
+
+@enduml

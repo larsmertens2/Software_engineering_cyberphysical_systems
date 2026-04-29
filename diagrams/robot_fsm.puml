@@ -1,3 +1,5 @@
+' Generated with AI
+
 @startuml RobotFSM
 
 skinparam state {

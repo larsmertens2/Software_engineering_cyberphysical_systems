@@ -1,3 +1,5 @@
+' This Plant UML diagram has been refactored and changed heavily by AI.
+
 @startuml RobotController
 
 skinparam classAttributeIconSize 0

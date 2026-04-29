@@ -1,0 +1,83 @@
+' Generated with AI
+
+@startuml Backend
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+skinparam package {
+    BackgroundColor #F0F0FF
+    BorderColor Black
+}
+
+package "Flask Backend" {
+
+    class FlaskAPI {
+        - locked_nodes : dict
+        - locked_aisles : dict
+        - aisle_states : dict
+        - emergency_active : bool
+        --
+        ' -- Inventory --
+        + GET /api/items
+        + POST /api/queue
+        ' -- Task Queue --
+        + POST /api/queue/claim
+        + POST /api/queue/complete
+        + GET /api/queue/status
+        ' -- Aisle Locking --
+        + POST /api/queue/aisle/lock
+        + GET /api/queue/aisle/locked
+        + POST /api/queue/aisle/unlock
+        + POST /api/queue/aisle/reset_all
+        ' -- Node Locking --
+        + POST /api/nodes/lock
+        + POST /api/nodes/unlock
+        + GET /api/nodes/locked
+        ' -- Map --
+        + GET /api/map
+        ' -- Aisle State --
+        + POST /api/aisle/state
+        + GET /api/aisle/states
+        ' -- Emergency --
+        + GET /api/emergency
+        + POST /api/emergency
+    }
+
+    class SocketIOEvents <<enumeration>> {
+        queue_updated
+        inventory_updated
+        aisle_updated
+        emergency_updated
+    }
+}
+
+package "Database" {
+
+    class items {
+        + id : int
+        + name : str
+        + category : str
+        + stock : int
+        + aisle : int
+    }
+
+    class job_queue {
+        + id : int
+        + item_id : int
+        + status : pending | assigned | completed
+        + robot_id : str | null
+        + created_at : timestamp
+    }
+}
+
+FlaskAPI --> items       : reads / updates stock
+FlaskAPI --> job_queue   : creates / updates status
+FlaskAPI ..> SocketIOEvents : emits
+
+job_queue "many" --> "1" items : item_id
+
+@enduml

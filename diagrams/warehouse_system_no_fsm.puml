@@ -272,49 +272,6 @@ package "Aisle Device Controller" {
     AisleDeviceController *-- AisleReceiver : receiver
 }
 
-package "Robot FSM" {
-
-    class IDLE <<state>> {
-        entry / poll taskmanager
-        entry / plan route via get_route()
-    }
-    class WAITING <<state>> {
-        entry / set wait_until timer
-        do / motors stop (0, 0)
-    }
-    class ROTATING <<state>> {
-        do / read GPS + compass
-        do / rotate until aligned
-    }
-    class MOVING <<state>> {
-        do / navigate_to_waypoint\n     (slow_factor = 3)
-    }
-    class MOVING_AISLE <<state>> {
-        do / navigate_to_waypoint\n     (slow_factor = 1.5)
-        do / send EXITING on aisle exit
-    }
-    class WAITING_AISLE <<state>> {
-        entry / send REQUEST_ENTRY
-        do / motors stop (0, 0)
-        do / poll Receiver
-    }
-
-    IDLE          --> ROTATING      : route found
-    IDLE          --> WAITING       : no route [30s timer]
-    IDLE          --> IDLE          : no task [throttle 2s]
-    WAITING       --> IDLE          : timer expired
-    ROTATING      --> MOVING        : aligned &&\ntarget not aisle
-    ROTATING      --> MOVING_AISLE  : aligned &&\ntarget is aisle &&\nalready in aisle
-    ROTATING      --> WAITING_AISLE : aligned &&\ntarget is aisle &&\nnot yet in aisle
-    MOVING        --> ROTATING      : obstacle detected\n(reroute)
-    MOVING        --> ROTATING      : waypoint reached,\nmore waypoints remain
-    MOVING        --> IDLE          : route finished
-    MOVING_AISLE  --> ROTATING      : obstacle detected\n(send EXITING + reroute)
-    MOVING_AISLE  --> ROTATING      : waypoint reached,\nmore waypoints remain
-    MOVING_AISLE  --> IDLE          : route finished
-    WAITING_AISLE --> MOVING_AISLE  : ENTRY_GRANTED received
-}
-
 package "Message Protocol" {
     class RobotToAisle <<enumeration>> {
         REQUEST_ENTRY
