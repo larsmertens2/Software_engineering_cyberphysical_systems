@@ -14,7 +14,7 @@ locked_nodes = {}
 locked_aisles = {}
 
 # Wordt bijgehouden door aisle devices (via POST /api/aisle/state)
-# { "Ailse_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
+# { "Aisle_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
 aisle_states = {}
 
 def resolve_map_file_path():
@@ -185,10 +185,10 @@ def complete_task():
 def lock_aisle():
     data = request.json
     robot_id = data.get("robot_id")
-    target_node = data.get("aisle")  # Bijv. 'Ailse_2' of 'Ailse_2_A'
+    target_node = data.get("aisle")  # Bijv. 'Aisle_2' of 'Aisle_2_A'
     
     # We pakken de basisnaam van de gang (zodat we de HELE gang locken)
-    # "Ailse_2_A" wordt "Ailse_2". "Ailse_3" blijft gewoon "Ailse_3".
+    # "Aisle_2_A" wordt "Aisle_2". "Aisle_3" blijft gewoon "Aisle_3".
     parts = target_node.split('_')
     if len(parts) >= 2:
         base_aisle = f"{parts[0]}_{parts[1]}"

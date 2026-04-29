@@ -130,8 +130,12 @@ class RobotController:
                 self.current_task = self.current_tasks_list[0]
                 print(f"{self.robot_name}: Nieuwe taak: Pickup {self.current_task[0]}")
             else:
+                if self.robot.getTime() < self.wait_until:
+                    return  # Throttle: wacht voor opnieuw claimen
                 self.current_tasks_list = self.taskmanager.get_task_list(4)
-                return  # Nog geen taak beschikbaar, volgende tick opnieuw proberen
+                if not self.current_tasks_list:
+                    self.wait_until = self.robot.getTime() + 2.0  # 2s wachten voor volgende poging
+                return  # Nog geen taak beschikbaar
 
         doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
         self.route = get_route(self.nodes, self.edges, self.current_node,
@@ -169,8 +173,8 @@ class RobotController:
             self._drive(val, -val)
         else:
             target_name = self.route[self.target_node_index]
-            if "Ailse" in target_name:
-                if "Ailse" not in self.current_node:
+            if "Aisle" in target_name:
+                if "Aisle" not in self.current_node:
                     # Verse aisle-entry: vraag toegang aan het device
                     self._request_aisle_entry(target_name, self.current_node)
                     self._transition("WAITING_AISLE")
@@ -241,7 +245,7 @@ class RobotController:
     # -------------------------------------------------------------------------
 
     def _get_base_aisle(self, node_name):
-        """Geeft de basis-aisle terug: 'Ailse_1_2' -> 'Ailse_1'."""
+        """Geeft de basis-aisle terug: 'Aisle_1_2' -> 'Aisle_1'."""
         parts = node_name.split("_")
         return "_".join(parts[:2])
 
@@ -274,7 +278,7 @@ class RobotController:
     def _poll_receiver(self):
         """Verwerk inkomende berichten van aisle devices."""
         while self.receiver.getQueueLength() > 0:
-            msg = json.loads(self.receiver.getData().decode())
+            msg = json.loads(self.receiver.getString())
             self.receiver.nextPacket()
             if msg.get("to") == self.robot_name:
                 self.aisle_response = msg["type"]
@@ -286,7 +290,7 @@ class RobotController:
         self.obstructed_nodes.append(target_name)
         print(f"{self.robot_name}: Obstakel bij {target_name}! Terug naar {self.current_node}")
 
-        if self.current_locked_aisle is not None and "Ailse" not in target_name:
+        if self.current_locked_aisle is not None and "Aisle" not in target_name:
             self._notify_aisle_exit()
 
         self.route = get_route(self.nodes, self.edges, self.current_node,
@@ -298,7 +302,7 @@ class RobotController:
         """Verwerk het bereiken van een waypoint en bepaal de volgende state."""
         print(f"{self.robot_name}: Node {target_name} bereikt")
 
-        if "Ailse" not in target_name and self.current_node and "Ailse" in self.current_node:
+        if "Aisle" not in target_name and self.current_node and "Aisle" in self.current_node:
             self._notify_aisle_exit()
 
         self.current_node = target_name

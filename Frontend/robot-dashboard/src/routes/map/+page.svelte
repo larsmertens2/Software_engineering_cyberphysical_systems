@@ -44,7 +44,7 @@
     function getY(y) { return offsetY - y * scale; }
 
     function getBaseAisle(name) {
-        return name.split('_').slice(0, 2).join('_'); // "Ailse_1_2" -> "Ailse_1"
+        return name.split('_').slice(0, 2).join('_'); // "Aisle_1_2" -> "Aisle_1"
     }
 
     function aisleEdgeColor(nodeName) {
@@ -90,7 +90,7 @@
             <!-- Edges -->
             {#each edges as [start, end]}
                 {#if mapData.nodes[start] && mapData.nodes[end]}
-                    {#if start.includes('Ailse') && end.includes('Ailse')}
+                    {#if start.includes('Aisle') && end.includes('Aisle')}
                         <!-- Aisle edge: groen = vrij, rood = bezet -->
                         <line
                             x1={getX(mapData.nodes[start].x)} y1={getY(mapData.nodes[start].y)}
