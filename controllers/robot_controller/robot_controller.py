@@ -200,7 +200,7 @@ class RobotController:
     def _state_waiting_aisle(self):
         """Wacht op GRANTED van het aisle device. Rijdt niet."""
         self._drive(0, 0)
-        if self.aisle_response == "GRANTED":
+        if self.aisle_response == "ENTRY_GRANTED":
             self.aisle_response = None
             self._transition("MOVING_AISLE")
 
@@ -263,7 +263,7 @@ class RobotController:
         if self.current_locked_aisle is None:
             return
         msg = json.dumps({
-            "type": "EXITED",
+            "type": "EXITING",
             "robot_id": self.robot_name,
             "aisle": self.current_locked_aisle,
         })

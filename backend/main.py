@@ -13,6 +13,10 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 locked_nodes = {}
 locked_aisles = {}
 
+# Wordt bijgehouden door aisle devices (via POST /api/aisle/state)
+# { "Ailse_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
+aisle_states = {}
+
 def resolve_map_file_path():
     candidates = [
         os.path.join(os.path.dirname(__file__), "..", "controllers", "robot_controller", "map.json"),
@@ -268,9 +272,10 @@ def get_locked_nodes():
 
 @app.route('/api/queue/aisle/reset_all', methods=['POST', 'GET'])
 def reset_all_aisles():
-    # Maak de hele dictionary met gelockte gangen leeg
     locked_aisles.clear()
+    aisle_states.clear()
     print("[API] Alle gangen zijn geforceerd vrijgegeven (RESET)!")
+    socketio.emit('aisle_updated', aisle_states)
     return jsonify({"success": True, "message": "Alle locks verwijderd"})
 
 @app.route('/api/queue/status', methods=['GET'])
@@ -303,6 +308,25 @@ def get_map():
             return jsonify(json.load(file_handle))
     except Exception as error:
         return jsonify({"error": str(error)}), 500
+
+@app.route('/api/aisle/state', methods=['POST'])
+def update_aisle_state():
+    data = request.json
+    aisle = data.get('aisle_id')
+    if not aisle:
+        return jsonify({"error": "aisle_id is mandatory"}), 400
+
+    aisle_states[aisle] = {
+        "locker": data.get("locker"),
+        "waiting": data.get("waiting", []),
+    }
+    print(f"[AISLE] {aisle}: locker={aisle_states[aisle]['locker']}, waiting={aisle_states[aisle]['waiting']}")
+    socketio.emit('aisle_updated', aisle_states)
+    return jsonify({"ok": True})
+
+@app.route('/api/aisle/states', methods=['GET'])
+def get_aisle_states():
+    return jsonify(aisle_states)
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True,  allow_unsafe_werkzeug=True)
