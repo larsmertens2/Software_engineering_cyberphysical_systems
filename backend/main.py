@@ -11,11 +11,11 @@ app = Flask(__name__)
 CORS(app) 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Wordt bijgehouden door aisle devices (via POST /api/aisle/state)
+# kept track of bij aisle device (POST /api/aisle/state)
 # { "Aisle_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
 aisle_states = {}
 
-# Bijhouden welke robots naar welke aisle onderweg zijn (op basis van geclaimde taken)
+# keeping track of claimed tasks
 # { "Aisle_1": ["Bot_1", "Bot_2"], ... }
 active_aisle_robots: dict[str, list[str]] = {}
 active_aisle_lock = threading.Lock()
@@ -82,7 +82,7 @@ def add_to_queue():
     return jsonify({"message": "Task added to qeue"}), 201
 
 
-def _register_robot_aisle(robot_id: str, aisle: str):
+def _register_robot_aisle(robot_id: str, aisle: str): #bot claimt aisle
     with active_aisle_lock:
         if aisle not in active_aisle_robots:
             active_aisle_robots[aisle] = []
@@ -91,7 +91,7 @@ def _register_robot_aisle(robot_id: str, aisle: str):
     socketio.emit('active_aisles_updated', active_aisle_robots)
 
 
-def _unregister_robot_aisle(robot_id: str, aisle: str):
+def _unregister_robot_aisle(robot_id: str, aisle: str): #bot unclaims aisle
     with active_aisle_lock:
         if aisle in active_aisle_robots and robot_id in active_aisle_robots[aisle]:
             active_aisle_robots[aisle].remove(robot_id)
@@ -101,7 +101,7 @@ def _unregister_robot_aisle(robot_id: str, aisle: str):
     socketio.emit('active_aisles_updated', active_aisle_robots)
 
 
-@app.route('/api/queue/claim', methods=['POST'])
+@app.route('/api/queue/claim', methods=['POST']) #bot claims task
 def claim_batch():
     data = request.json
     robot_id = data.get('robot_id')
@@ -246,7 +246,7 @@ def complete_task():
         cursor.close()
         conn.close()
 
-@app.route('/api/queue/status', methods=['GET'])
+@app.route('/api/queue/status', methods=['GET']) #get the qeue status for frontend
 def get_queue_status():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -264,7 +264,7 @@ def get_queue_status():
     return jsonify(status_list)
 
 
-@app.route('/api/map', methods=['GET'])
+@app.route('/api/map', methods=['GET']) #get the map for frontend
 def get_map():
     file_path = resolve_map_file_path()
 
@@ -277,7 +277,7 @@ def get_map():
     except Exception as error:
         return jsonify({"error": str(error)}), 500
 
-@app.route('/api/aisle/state', methods=['POST'])
+@app.route('/api/aisle/state', methods=['POST']) #update aisle state from aisle device
 def update_aisle_state():
     data = request.json
     aisle = data.get('aisle_id')
@@ -292,7 +292,7 @@ def update_aisle_state():
     socketio.emit('aisle_updated', aisle_states)
     return jsonify({"ok": True})
 
-@app.route('/api/aisle/states', methods=['GET'])
+@app.route('/api/aisle/states', methods=['GET']) #get the states of all aisles for frontend
 def get_aisle_states():
     return jsonify(aisle_states)
 
@@ -311,7 +311,7 @@ def get_emergency_status():
         "emergency_active": emergency_active
     }), 200
 
-@app.route('/api/emergency', methods=['POST'])
+@app.route('/api/emergency', methods=['POST']) #toggle emergency status
 def toggle_emergency():
     """Toggle emergency state"""
     global emergency_active
