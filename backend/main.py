@@ -18,6 +18,11 @@ locked_aisles = {}
 # { "Aisle_1": { "locked_by": "Bot_1" | None, "waiting": [{"robot_id": "Bot_2", "node": "A3"}] } }
 aisle_states = {}
 
+# Bijhouden welke robots naar welke aisle onderweg zijn (op basis van geclaimde taken)
+# { "Aisle_1": ["Bot_1", "Bot_2"], ... }
+active_aisle_robots: dict[str, list[str]] = {}
+active_aisle_lock = threading.Lock()
+
 # Emergency stop state
 emergency_active = False
 
@@ -80,6 +85,25 @@ def add_to_queue():
     return jsonify({"message": "Task added to qeue"}), 201
 
 
+def _register_robot_aisle(robot_id: str, aisle: str):
+    with active_aisle_lock:
+        if aisle not in active_aisle_robots:
+            active_aisle_robots[aisle] = []
+        active_aisle_robots[aisle].append(robot_id)
+    print(f"[AISLE-TRACK] {robot_id} -> {aisle} | active: {dict(active_aisle_robots)}")
+    socketio.emit('active_aisles_updated', active_aisle_robots)
+
+
+def _unregister_robot_aisle(robot_id: str, aisle: str):
+    with active_aisle_lock:
+        if aisle in active_aisle_robots and robot_id in active_aisle_robots[aisle]:
+            active_aisle_robots[aisle].remove(robot_id)
+            if not active_aisle_robots[aisle]:
+                del active_aisle_robots[aisle]
+    print(f"[AISLE-TRACK] {robot_id} klaar in {aisle} | active: {dict(active_aisle_robots)}")
+    socketio.emit('active_aisles_updated', active_aisle_robots)
+
+
 @app.route('/api/queue/claim', methods=['POST'])
 def claim_batch():
     data = request.json
@@ -103,32 +127,69 @@ def claim_batch():
             LIMIT 1
         """, (robot_id,))
         assigned = cursor.fetchone()
-        
+
         if assigned:
             return jsonify([assigned]), 200
 
-        cursor.execute("""
-            UPDATE job_queue 
-            SET status = 'assigned', robot_id = %s 
-            WHERE status = 'pending' 
-            ORDER BY id ASC 
-            LIMIT 1
-        """, (robot_id,))
-        conn.commit()
+        with active_aisle_lock:
+            busy_aisles = list(active_aisle_robots.keys())
 
-        if cursor.rowcount > 0:
+        new_task = None
+
+        if busy_aisles:
+            placeholders = ','.join(['%s'] * len(busy_aisles))
+            cursor.execute(f"""
+                UPDATE job_queue
+                SET status = 'assigned', robot_id = %s
+                WHERE id = (
+                    SELECT subq.id FROM (
+                        SELECT q.id
+                        FROM job_queue q
+                        JOIN items i ON q.item_id = i.id
+                        WHERE q.status = 'pending'
+                        AND i.aisle NOT IN ({placeholders})
+                        ORDER BY q.id ASC
+                        LIMIT 1
+                    ) AS subq
+                )
+            """, [robot_id] + busy_aisles)
+            conn.commit()
+
+            if cursor.rowcount > 0:
+                cursor.execute("""
+                    SELECT q.id, i.aisle
+                    FROM job_queue q
+                    JOIN items i ON q.item_id = i.id
+                    WHERE q.status = 'assigned' AND q.robot_id = %s
+                    ORDER BY q.id DESC LIMIT 1
+                """, (robot_id,))
+                new_task = cursor.fetchone()
+
+        if new_task is None:
             cursor.execute("""
-                SELECT q.id, i.aisle
-                FROM job_queue q
-                JOIN items i ON q.item_id = i.id
-                WHERE q.status = 'assigned' AND q.robot_id = %s
+                UPDATE job_queue
+                SET status = 'assigned', robot_id = %s
+                WHERE status = 'pending'
+                ORDER BY id ASC
+                LIMIT 1
             """, (robot_id,))
-            new_task = cursor.fetchone()
-            
+            conn.commit()
+
+            if cursor.rowcount > 0:
+                cursor.execute("""
+                    SELECT q.id, i.aisle
+                    FROM job_queue q
+                    JOIN items i ON q.item_id = i.id
+                    WHERE q.status = 'assigned' AND q.robot_id = %s
+                    ORDER BY q.id DESC LIMIT 1
+                """, (robot_id,))
+                new_task = cursor.fetchone()
+
+        if new_task:
+            _register_robot_aisle(robot_id, new_task['aisle'])
             socketio.emit('queue_updated', {'message': 'Task assigned'})
             return jsonify([new_task]), 200
-        
-        # Geen taken beschikbaar
+
         return jsonify([]), 200
 
     except Exception as e:
@@ -152,23 +213,29 @@ def complete_task():
 
     try:
         cursor = conn.cursor()
-        
-        cursor.execute("SELECT item_id FROM job_queue WHERE id = %s", (task_id,))
+
+        cursor.execute("""
+            SELECT q.item_id, q.robot_id, i.aisle
+            FROM job_queue q
+            JOIN items i ON q.item_id = i.id
+            WHERE q.id = %s
+        """, (task_id,))
         result = cursor.fetchone()
-        
+
         if not result:
             return jsonify({"error": "Task not found"}), 404
-        
-        item_id = result[0]
+
+        item_id, task_robot_id, aisle = result
+
         cursor.execute("UPDATE job_queue SET status = 'completed' WHERE id = %s", (task_id,))
-
         cursor.execute("UPDATE items SET stock = stock - 1 WHERE id = %s AND stock > 0", (item_id,))
-
         conn.commit()
-        
-        socketio.emit('queue_updated', {'message': 'Task completed'})
-        socketio.emit('inventory_updated', {'message': 'Iventory changed'})
 
+        if task_robot_id and aisle:
+            _unregister_robot_aisle(task_robot_id, aisle)
+
+        socketio.emit('queue_updated', {'message': 'Task completed'})
+        socketio.emit('inventory_updated', {'message': 'Inventory changed'})
 
         return jsonify({
             "message": f"Task {task_id} completed and inventory updated",
@@ -176,7 +243,7 @@ def complete_task():
         }), 200
 
     except mysql.connector.Error as err:
-        conn.rollback() 
+        conn.rollback()
         return jsonify({"error": f"Database error: {err}"}), 500
     finally:
         cursor.close()
@@ -231,6 +298,12 @@ def update_aisle_state():
 @app.route('/api/aisle/states', methods=['GET'])
 def get_aisle_states():
     return jsonify(aisle_states)
+
+# Debug endpoint. Won't be discussed in report. 
+@app.route('/api/aisle/active', methods=['GET'])
+def get_active_aisles():
+    with active_aisle_lock:
+        return jsonify(dict(active_aisle_robots))
 
 # Emergency stop endpoints
 @app.route('/api/emergency', methods=['GET'])

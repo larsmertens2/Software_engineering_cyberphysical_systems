@@ -1,0 +1,23 @@
+@startuml
+node Docker {
+node "DB container" {
+component Database
+}
+node "Webserver container" {
+component "Application (Svelte)" as app
+component "API backend" as backend
+}
+}
+node Browser {
+component "Svelte App" as svelte
+}
+
+node Devices {
+node Robot {
+component "Robot Controller" as rcon
+}
+node "Aisle Device" {
+component "AisleDevice Controller" as adcon
+}
+}
+@endum
