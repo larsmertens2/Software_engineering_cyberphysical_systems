@@ -35,7 +35,7 @@ class TaskManager:
                 formatted_tasks = []
                 for t in api_tasks:
                     aisle_num = t.get('aisle')
-                    pickup_node = self.aisle_to_entrance.get(aisle_num, "Aisle_2_2")
+                    pickup_node = self.aisle_to_entrance.get(aisle_num)
                     
                     # CRUCIAAL: Voeg t.get('id') toe zodat de robot weet welke taak hij doet
                     formatted_tasks.append([pickup_node, self.dropoff_point, t.get('id')])
