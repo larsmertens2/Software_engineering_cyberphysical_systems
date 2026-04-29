@@ -33,7 +33,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.398721280605675 0.42455771270357595 0.812878889488513 1.7146921543420481
-  position 0.27271732716999203 1.8609127799743264 6.943918325973362
+  position 0.28399387302646323 2.0404266853299426 6.711561058686717
 }
 RectangleArena {
   contactMaterial "floor_material"
@@ -323,6 +323,8 @@ DEF Aisle_1_3_Device Robot {
       }
     }
   ]
+  name "Aisle_2"
+  controller "AisleDevice_controller"
 }
 DEF Aisle_5_7_Device Robot {
   translation -0.6 6.45 0.6
@@ -339,7 +341,8 @@ DEF Aisle_5_7_Device Robot {
       }
     }
   ]
-  name "robot(2)"
+  name "Aisle_1"
+  controller "AisleDevice_controller"
 }
 DEF Aisle_2_4_Device Robot {
   translation 0.6 8.05 0.6
@@ -356,7 +359,8 @@ DEF Aisle_2_4_Device Robot {
       }
     }
   ]
-  name "robot(1)"
+  name "Aisle_3"
+  controller "AisleDevice_controller"
 }
 DEF Aisle_6_8_Device Robot {
   translation 0.6 6.45 0.7
@@ -373,7 +377,8 @@ DEF Aisle_6_8_Device Robot {
       }
     }
   ]
-  name "robot(3)"
+  name "Aisle_4"
+  controller "AisleDevice_controller"
 }
 DEF Dropoff Solid {
   translation 0 4.7 0
