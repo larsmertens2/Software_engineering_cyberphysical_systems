@@ -1,17 +1,17 @@
 """
 ROBOT CONTROLLER - Webots TurtleBot3 Warehouse Navigation
 
-Bevat enkel de FSM-besturing. Hardware en berekeningen zitten in aparte modules:
-- sensors.py:    kompas- en LIDAR-uitlezing
-- motion.py:     motoraansturing
-- navigation.py: kaart laden en routeberekening
+This controller only implements the final state machine of the robot, the following documents contain the listed functions:
+- sensors.py:    compass and lidar readings
+- motion.py:     motor control
+- navigation.py: loading map and calculating route
 
 States:
-  IDLE         -> taak ophalen en route plannen
-  WAITING      -> wachten op timer (geen route / gang bezet)
-  ROTATING     -> draaien naar volgend waypoint
-  MOVING       -> rijden naar waypoint met obstakeldetectie (slow_factor=3)
-  MOVING_AISLE -> rijden in een gang: ganglocking + mildere reductie (slow_factor=1.5)
+  IDLE:              taak ophalen en route plannen
+  WAITING:          wachten op timer (geen route / gang bezet)
+  ROTATING:         draaien naar volgend waypoint
+  MOVING:           rijden naar waypoint met obstakeldetectie (slow_factor=3)
+  MOVING_AISLE:     rijden in een gang: ganglocking + mildere reductie (slow_factor=1.5)
 
 Referenties:
 - Webots TurtleBot3 voorbeeld: https://github.com/cyberbotics/webots/blob/R2021b/projects/robots/robotis/turtlebot/controllers/turtlebot3_ostacle_avoidance/turtlebot3_ostacle_avoidance.c
@@ -39,7 +39,6 @@ from task_controller.task_controller import TaskManager
 
 class RobotController:
     def __init__(self):
-        # Enkel de HAL gebruiken!
         self.hal = create_robot_hal()
         self.time_step = self.hal.get_time_step()
         self.robot_name = self.hal.get_name()
@@ -48,16 +47,16 @@ class RobotController:
 
         self.wait_until = 0.0
 
-        # Configuratie
+        # Configuration
         self.max_speed = 4
         self.dist_error = 0.05
         self.angle_error = 0.04
         self.nearby_threshold = 0.5
         self.obstacle_threshold = 0.2
-        self.normal_slow_factor = 3    # Snelheidsreductie bij object nabij (normaal rijden)
-        self.aisle_slow_factor = 1.5   # Snelheidsreductie bij object nabij (in gang)
+        self.normal_slow_factor = 3    # Speed reduction when close to an object
+        self.aisle_slow_factor = 1.5   # speed reduction when in a narrow aisle
 
-        # Motoren
+        # Motors
         self.left_motor = self.hal.left_motor
         self.left_motor.setPosition(float('inf'))
         self.left_motor.setVelocity(0)
@@ -65,7 +64,7 @@ class RobotController:
         self.right_motor.setPosition(float('inf'))
         self.right_motor.setVelocity(0)
 
-        # Sensoren
+        # Sensors
         self.gps = self.hal.gps
         self.gps.enable(self.time_step)
         self.compass = self.hal.compass
@@ -74,13 +73,13 @@ class RobotController:
         self.lidar.enable(self.time_step)
         self.lidar.enablePointCloud()
 
-        # Communicatie met aisle devices
+        # Communication with aisle devices
         self.emitter = self.hal.getDevice("Emitter")
         self.receiver = self.hal.getDevice("Receiver")
         self.receiver.enable(self.time_step)
         self.aisle_response = None
 
-        # Kaart & navigatie
+        # Map & navigation
         self.nodes, self.edges = load_map()
 
         dropoff_map = {
@@ -94,12 +93,12 @@ class RobotController:
         self.obstructed_nodes = []
         self.current_locked_aisle = None
 
-        # Taakbeheer
+        # Task management
         self.current_tasks_list = []
         self.current_task = None
         self.ReachedPackage = False
 
-        # FSM
+        # Final State Machine
         self.state = "IDLE"
         self._state_handlers = {
             "IDLE":          self._state_idle,
@@ -113,18 +112,20 @@ class RobotController:
         # Emergency stop state
         self.emergency_active = False
         self.last_emergency_check = 0
-        self.emergency_check_interval = 0.5  # Check elke 0.5 seconden
+        self.emergency_check_interval = 0.5  # Check each 0.5 seconds
 
     # -------------------------------------------------------------------------
-    # Hoofdlus
+    # Main loop
     # -------------------------------------------------------------------------
 
     def _transition(self, new_state):
+        # Print the change of state and actually update the state
         if new_state != self.state:
             print(f"{self.robot_name}: {self.state} -> {new_state}")
             self.state = new_state
 
     def run(self):
+        # Main loop: do actions based on the current state, check for possible state changes and poll for messages from aisle devices.
         while self.hal.step(self.time_step) != -1:
             # Check emergency status
             self._check_emergency_status()
@@ -143,93 +144,111 @@ class RobotController:
     # -------------------------------------------------------------------------
 
     def _state_idle(self):
-        """Haal een taak op en plan een route. Overgang naar ROTATING of WAITING."""
+        # Request a new task, plan the next route
         if self.current_task is None:
             if self.current_tasks_list:
                 self.current_task = self.current_tasks_list[0]
-                print(f"{self.robot_name}: Nieuwe taak: Pickup {self.current_task[0]}")
+                print(f"{self.robot_name}: New task: Pickup {self.current_task[0]}")
             else:
                 if self.hal.get_time() < self.wait_until:
-                    return  # Throttle: wacht voor opnieuw claimen
+                    return  # Throttle: Wait before claiming again
                 self.current_tasks_list = self.taskmanager.get_task_list(1)
                 if not self.current_tasks_list:
-                    self.wait_until = self.hal.get_time() + 2.0  # 2s wachten voor volgende poging
+                    self.wait_until = self.hal.get_time() + 2.0  # 2s wait for next attempt
                     self.route = []           
                     self.current_task = None  
                     self._drive(0, 0)        
                     return                    
-                return  # Nog geen taak beschikbaar
+                return  # No task available (yet)
 
+        # Get new objective, plan route
         doel = self.current_task[1] if self.ReachedPackage else self.current_task[0]
         self.route = get_route(self.nodes, self.edges, self.current_node,
                                self.obstructed_nodes, doel)
 
         if not self.route:
-            print(f"{self.robot_name}: Geen route naar {doel}! Wachten 30s...")
+            # No route found: enter wait state
+            print(f"{self.robot_name}: No route to {doel}! Wait 30s...")
             self.wait_until = self.hal.get_time() + 30.0
             self._transition("WAITING")
         else:
+            # Route found: start rotating for next node
             self.target_node_index = 0
             self._transition("ROTATING")
 
     def _state_waiting(self):
-        """Wacht tot de timer verstreken is. Overgang naar IDLE."""
+        """Wait till timer expires, then return idle for a new attempt at a route or task claim
+
+        State changes: IDLE after timer expires
+        """
         if self.hal.get_time() >= self.wait_until:
-            print(f"{self.robot_name}: Klaar met wachten, opnieuw plannen...")
+            print(f"{self.robot_name}: Done waiting, new attempt at a route or claiming a task...")
             self._transition("IDLE")
         else:
             self._drive(0, 0)
 
     def _state_rotating(self):
-        """Draai naar het volgende waypoint.
+        """Rotate to next waypoint/node.
 
-        Overgang naar MOVING_AISLE als target een gang is, anders naar MOVING.
+        State changes: MOVING or MOVING_AISLE after rotation is complete
         """
         position = self.gps.get_position()
         if math.isnan(position[0]):
             return
 
+        # Calculate angle difference to next node
         angle_diff = self._calc_angle_diff(position, self.nodes[self.route[self.target_node_index]])
 
         if abs(angle_diff) > self.angle_error:
+            # If angle is too large, rotate to make the difference smaller.
             val = -0.8 if angle_diff > 0 else 0.8
             self._drive(val, -val)
         else:
+            # If angle is small enough, start moving. Either in a hallway or normal.
             target_name = self.route[self.target_node_index]
             if "Aisle" in target_name:
+                # Moving towards/in aisle
                 if "Aisle" not in self.current_node:
-                    # Verse aisle-entry: vraag toegang aan het device
+                    # Aisle-version: ask permission to enter.
                     self._request_aisle_entry(target_name, self.current_node)
                     self._transition("WAITING_AISLE")
                 else:
                     # Al in de gang, geen nieuwe request nodig
                     self._transition("MOVING_AISLE")
             else:
+                # Normal moving
                 self._transition("MOVING")
 
     def _state_moving(self):
-        """Rij naar een gewoon waypoint. Object nabij -> snelheid / 3.
+        """ Drive towards next waypoint/node. Slow down if close to obstacle.
 
-        Overgangen:
-          - Obstakel gedetecteerd        -> ROTATING (herplan terug naar huidig node)
-          - Waypoint bereikt, nog route  -> ROTATING (volgend waypoint)
-          - Waypoint bereikt, route klaar-> IDLE (taakstatus bijwerken)
+        State changes:
+          - Obstacle detected:                      ROTATING (reroute to current node)
+          - Waypoint reached, route unfinished:     ROTATING (move - rotate first - to next node)
+          - Waypoint reached, route finished:       IDLE (check tasks)
         """
         self._navigate_to_waypoint(slow_factor=self.normal_slow_factor)
 
     def _state_moving_aisle(self):
-        """Rij door een gang (toegang al verleend door aisle device). Mildere snelheidsreductie.
+        """Move through aisle, lesser speed correction.
 
-        Overgangen: zelfde als MOVING.
+        State changes: similar to MOVING.
         """
         self._navigate_to_waypoint(slow_factor=self.aisle_slow_factor)
 
     def _state_waiting_aisle(self):
-        """Wacht op GRANTED van het aisle device. Rijdt niet."""
+        """Wait for GRANTED message of aisle device. Don't drive.
+        
+        State changes: MOVING_AISLE if ENTRY_GRANTED received, ROTATING if timer expires
+        """
         self._drive(0, 0)
         if self.aisle_response == "ENTRY_GRANTED":
             self.aisle_response = None
             self._transition("MOVING_AISLE")
+
+    # -------------------------------------------------------------------------
+    # Hulpmethoden (geen state-logica)
+    # -------------------------------------------------------------------------
 
     def _navigate_to_waypoint(self, slow_factor):
         """Gedeelde rijlogica voor MOVING en MOVING_AISLE."""
@@ -262,11 +281,7 @@ class RobotController:
             correction = 0.0 if math.isinf(left_dist) or math.isinf(right_dist) \
                          else (left_dist - right_dist) * 3.0
             self._drive(self.max_speed + correction, self.max_speed - correction, slow_factor)
-
-    # -------------------------------------------------------------------------
-    # Hulpmethoden (geen state-logica)
-    # -------------------------------------------------------------------------
-
+            
     def _check_emergency_status(self):
         """Poll de backend om de emergency status te controleren."""
         current_time = time.time()

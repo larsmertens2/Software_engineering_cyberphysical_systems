@@ -1,0 +1,87 @@
+' This Plant UML diagram has been refactored and changed heavily by AI.
+
+@startuml AisleDevice
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+
+class AisleDeviceController {
+    - base_url : str
+    - robot : Robot
+    - time_step : int
+    - aisle_id : str
+    - locker : str | None
+    - queue : list[dict]
+    - _step_count : int
+    --
+    + send_message(robot_id: str, msg: str)
+    + update_state()
+    + run()
+}
+
+class RobotController {
+    - current_locked_aisle : str | None
+    - aisle_response : str | None
+    --
+    + _request_aisle_entry(node_name: str, current_node: str)
+    + _notify_aisle_exit()
+    + _poll_receiver()
+}
+
+class Receiver <<hardware>> {
+    + enable(time_step: int)
+    + getQueueLength() : int
+    + getString() : str
+    + nextPacket()
+    + getChannel() : int
+}
+
+class Emitter <<hardware>> {
+    + send(data: bytes)
+}
+
+class FlaskBackend {
+    - aisle_states : dict
+    --
+    + POST /api/aisle/state
+    + GET /api/aisle/states
+}
+
+note right of AisleDeviceController
+  Webots instances:
+  - Aisle_1 (Aisle_5_7_Device)
+  - Aisle_2 (Aisle_2_Device)
+  - Aisle_3 (Aisle_2_4_Device)
+  - Aisle_4 (Aisle_6_8_Device)
+end note
+
+note bottom of AisleDeviceController
+  queue entry: { robot_id, node }
+end note
+
+package "Message Protocol" {
+    class IncomingMessages <<enumeration>> {
+        REQUEST_ENTRY
+        EXITING
+    }
+    class OutgoingMessages <<enumeration>> {
+        ENTRY_GRANTED
+        ENTRY_DENIED
+    }
+}
+
+IncomingMessages -[hidden]down-> RobotController
+OutgoingMessages -[hidden]down-> AisleDeviceController
+
+AisleDeviceController *-down- Receiver : receiver
+AisleDeviceController *-down- Emitter : emitter
+
+RobotController -right-> AisleDeviceController : sends REQUEST_ENTRY\n& EXITING via emitter
+AisleDeviceController -right-> RobotController : sends ENTRY_GRANTED\n/ ENTRY_DENIED via emitter
+AisleDeviceController -down-> FlaskBackend : POST /api/aisle/state\n(aisle_id, locker, waiting)
+
+@enduml

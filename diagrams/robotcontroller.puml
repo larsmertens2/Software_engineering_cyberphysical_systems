@@ -1,0 +1,177 @@
+@startuml RobotController
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+skinparam package {
+    BackgroundColor #F0F0FF
+    BorderColor Black
+}
+
+class RobotController {
+    - hal : RobotHAL
+    - time_step : int
+    - robot_name : str
+    - taskmanager : TaskManager
+    - state : str
+    - current_node : str
+    - route : list[str]
+    - current_task : tuple | None
+    - ReachedPackage : bool
+    - obstructed_nodes : list[str]
+    - current_locked_aisle : str | None
+    - aisle_response : str | None
+    - emergency_active : bool
+    --
+    + run()
+    - _state_idle()
+    - _state_waiting()
+    - _state_rotating()
+    - _state_moving()
+    - _state_moving_aisle()
+    - _state_waiting_aisle()
+    - _navigate_to_waypoint(slow_factor)
+    - _request_aisle_entry(node_name, current_node)
+    - _notify_aisle_exit()
+    - _poll_receiver()
+    - _handle_obstacle(target_name)
+    - _on_waypoint_reached(target_name)
+    - _on_route_finished()
+    - _check_emergency_status()
+    - _transition(new_state)
+    - _drive(left, right, slow_factor)
+    - _calc_angle_diff(position, target_pos)
+    - _calc_distance(position, target_pos)
+}
+
+class RobotHAL {
+    - _robot : Robot
+    - _time_step : int
+    --
+    + get_name() : str
+    + get_time() : float
+    + get_time_step() : int
+    + step(time_step) : int
+    + getDevice(device_name) : object
+}
+
+package "Hardware" {
+    class GPS <<hardware>> {
+        + enable(time_step)
+        + get_position() : list[float]
+    }
+
+    class Compass <<hardware>> {
+        + enable(time_step)
+        + get_direction() : list[float]
+    }
+
+    class LIDAR <<hardware>> {
+        + enable(time_step)
+        + enablePointCloud()
+        + get_range_image() : list[float]
+    }
+
+    class Motor <<hardware>> {
+        + set_position_infinite()
+        + set_velocity(v: float)
+        + setPosition(pos: float)
+        + setVelocity(v: float)
+    }
+
+    class Emitter <<hardware>> {
+        + send(data: bytes)
+    }
+
+    class Receiver <<hardware>> {
+        + enable(time_step)
+        + getQueueLength() : int
+        + getString() : str
+        + nextPacket()
+    }
+}
+
+class sensors <<module>> {
+    + get_direction(compass) : float
+    + is_path_clear(lidar, threshold) : bool
+    + detect_narrow_corridor(lidar) : bool
+    + get_side_distances(lidar) : tuple
+    + object_nearby(lidar, threshold) : bool
+}
+
+class motion <<module>> {
+    + drive(left_motor, right_motor, left_speed,\nright_speed, lidar, nearby_threshold, slow_factor)
+}
+
+class navigation <<module>> {
+    + load_map() : (nodes, edges)
+    + get_route(nodes, edges, current, obstructed, end) : list[str]
+}
+
+class shortest_path <<module>> {
+    + shortest_path(nodes, obstructed, edges, start, end) : list[str]
+}
+
+class TaskManager {
+    - robot_name : str
+    --
+    + get_task_list(n) : list[tuple]
+    + complete_task(task_id)
+}
+
+class FlaskBackend {
+    --
+    + GET /api/emergency
+    + GET /api/tasks
+    + POST /api/task/complete
+}
+
+package "Message Protocol" {
+    class IncomingMessages <<enumeration>> {
+        ENTRY_GRANTED
+        ENTRY_DENIED
+    }
+    class OutgoingMessages <<enumeration>> {
+        REQUEST_ENTRY
+        EXITING
+    }
+}
+
+class AisleDeviceController {
+}
+
+' Compositie: RobotController -> RobotHAL
+RobotController *-down- RobotHAL : hal
+
+' HAL beheert hardware
+RobotHAL *-down- GPS : gps
+RobotHAL *-down- Compass : compass
+RobotHAL *-down- LIDAR : lidar
+RobotHAL *-down- Motor : left_motor
+RobotHAL *-down- Motor : right_motor
+RobotHAL *-down- Emitter : emitter
+RobotHAL *-down- Receiver : receiver
+
+' RobotController gebruikt modules
+RobotController ..> sensors : uses
+RobotController ..> motion : uses
+RobotController ..> navigation : uses
+
+' Module-afhankelijkheden
+navigation ..> shortest_path : uses
+motion ..> sensors : object_nearby
+
+' Taakbeheer
+RobotController *-right- TaskManager : taskmanager
+TaskManager ..> FlaskBackend : HTTP
+
+' Communicatie met AisleDevice
+RobotController ..> AisleDeviceController : REQUEST_ENTRY / EXITING\nvia Emitter
+AisleDeviceController ..> RobotController : ENTRY_GRANTED / ENTRY_DENIED\nvia Emitter
+
+IncomingMessages -[hidden]right- OutgoingMessages
+
+@enduml
