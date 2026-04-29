@@ -34,6 +34,10 @@ class AisleDeviceController:
             print(f"[{self.aisle_id}] Backend update mislukt: {e}")
 
     def run(self):
+        self.robot.step(self.time_step)
+        self.update_state()
+        print(f"[{self.aisle_id}] State gereset bij herstart")
+
         while self.robot.step(self.time_step) != -1:
             self._step_count += 1
 

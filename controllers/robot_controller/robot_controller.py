@@ -132,7 +132,7 @@ class RobotController:
             else:
                 if self.robot.getTime() < self.wait_until:
                     return  # Throttle: wacht voor opnieuw claimen
-                self.current_tasks_list = self.taskmanager.get_task_list(4)
+                self.current_tasks_list = self.taskmanager.get_task_list(1)
                 if not self.current_tasks_list:
                     self.wait_until = self.robot.getTime() + 2.0  # 2s wachten voor volgende poging
                 return  # Nog geen taak beschikbaar

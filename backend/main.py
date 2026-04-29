@@ -76,12 +76,11 @@ def add_to_queue():
     return jsonify({"message": "Task added to qeue"}), 201
 
 
-@app.route('/api/queue/claim', methods=['POST'])#robot claims task
+@app.route('/api/queue/claim', methods=['POST'])
 def claim_batch():
     data = request.json
     robot_id = data.get('robot_id')
-    batch_size = data.get('batch_size', 3) 
-    
+
     if not robot_id:
         return jsonify({"error": "robot_id is mandatory"}), 400
 
@@ -91,51 +90,56 @@ def claim_batch():
 
     cursor = conn.cursor(dictionary=True)
 
-    assigned_query = """
+    # Geef al toegewezen taak terug als de bot er nog mee bezig is
+    cursor.execute("""
         SELECT q.id, i.aisle
         FROM job_queue q
         JOIN items i ON q.item_id = i.id
         WHERE q.status = 'assigned' AND q.robot_id = %s
         ORDER BY q.id ASC
-        LIMIT %s
-    """
-    cursor.execute(assigned_query, (robot_id, batch_size))
-    assigned_tasks = cursor.fetchall()
-
-    if assigned_tasks:
+        LIMIT 1
+    """, (robot_id,))
+    assigned = cursor.fetchall()
+    if assigned:
         cursor.close()
         conn.close()
-        return jsonify(assigned_tasks), 200
-    
-    query = """
-        SELECT q.id, i.aisle 
-        FROM job_queue q
-        JOIN items i ON q.item_id = i.id
-        WHERE q.status = 'pending'
-        ORDER BY q.id ASC
-        LIMIT %s
-    """
-    cursor.execute(query, (batch_size,))
-    tasks = cursor.fetchall()
+        return jsonify(assigned), 200
 
-    if not tasks:
+    # Atomisch claimen: SELECT FOR UPDATE voorkomt dat twee bots dezelfde taak pakken
+    try:
+        conn.start_transaction()
+        cursor.execute("""
+            SELECT q.id, i.aisle
+            FROM job_queue q
+            JOIN items i ON q.item_id = i.id
+            WHERE q.status = 'pending'
+            ORDER BY q.id ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        """)
+        tasks = cursor.fetchall()
+
+        if not tasks:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return jsonify([]), 200
+
+        cursor.execute(
+            "UPDATE job_queue SET status = 'assigned', robot_id = %s WHERE id = %s",
+            (robot_id, tasks[0]['id'])
+        )
+        conn.commit()
+        socketio.emit('queue_updated', {'message': 'Task assigned'})
         cursor.close()
         conn.close()
-        return jsonify([]), 200
+        return jsonify(tasks), 200
 
-    task_ids = [t['id'] for t in tasks]
-    format_strings = ','.join(['%s'] * len(task_ids))
-    update_query = f"UPDATE job_queue SET status = 'assigned', robot_id = %s WHERE id IN ({format_strings})"
-    
-    cursor.execute(update_query, (robot_id, *task_ids))
-    conn.commit()
-    
-    socketio.emit('queue_updated', {'message': 'Task assigned'})
-
-    cursor.close()
-    conn.close()
-    
-    return jsonify(tasks)
+    except Exception as e:
+        conn.rollback()
+        cursor.close()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/queue/complete', methods=['POST']) # task completed
 def complete_task():
