@@ -92,7 +92,6 @@ def claim_batch():
 
     cursor = conn.cursor(dictionary=True)
 
-    # Geef al toegewezen taak terug als de bot er nog mee bezig is
     cursor.execute("""
         SELECT q.id, i.aisle
         FROM job_queue q
@@ -107,7 +106,6 @@ def claim_batch():
         conn.close()
         return jsonify(assigned), 200
 
-    # Lock op Python-niveau zodat gelijktijdige requests niet dezelfde taak claimen
     with _claim_lock:
         try:
             cursor.execute("""
